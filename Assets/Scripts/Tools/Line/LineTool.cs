@@ -278,11 +278,14 @@ namespace Sibz.Lines
                 controlPoint1,
                 controlPoint2,
                 endPoint);
-
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(curve.c0),
+                CurrentLine.transform.TransformPoint(curve.c0) + Vector3.up * 1.25f, Color.cyan, 0.25f);
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(curve.c3),
+                CurrentLine.transform.TransformPoint(curve.c3) + Vector3.up* 1.25f, Color.cyan, 0.25f);
             Debug.DrawLine(CurrentLine.transform.TransformPoint(curve.c1),
-                CurrentLine.transform.TransformPoint(curve.c1) + Vector3.up, Color.red, 0.25f);
+                CurrentLine.transform.TransformPoint(curve.c1) + Vector3.up* 1.25f, Color.red, 0.25f);
             Debug.DrawLine(CurrentLine.transform.TransformPoint(curve.c2),
-                CurrentLine.transform.TransformPoint(curve.c2) + Vector3.up, Color.red, 0.25f);
+                CurrentLine.transform.TransformPoint(curve.c2) + Vector3.up* 1.25f, Color.red, 0.25f);
         }
 
         private void AdjustEndNodeRotations()
@@ -346,10 +349,7 @@ namespace Sibz.Lines
                     CurrentLine.Line.SplineKnots = new float3[knots.Length + 1];
                     knots.CopyTo(CurrentLine.Line.SplineKnots, origin ? 0 : 1);
                     CurrentLine.Line.SplineKnots[origin ? knots.Length : 0] = origin ? knotEnd : knotStart;
-                    Debug.DrawLine(CurrentLine.transform.TransformPoint(knotStart),
-                        CurrentLine.transform.TransformPoint(knotStart) + Vector3.up, Color.cyan, 0.25f);
-                    Debug.DrawLine(CurrentLine.transform.TransformPoint(knotEnd),
-                        CurrentLine.transform.TransformPoint(knotEnd) + Vector3.up, Color.cyan, 0.25f);
+
                     break;
                 }
                 case LocalToolMode.StraightOriginAndEndCurves:
@@ -361,10 +361,6 @@ namespace Sibz.Lines
                     CurrentLine.Line.SplineKnots = new float3[knots1.Length + knots2.Length];
                     knots1.CopyTo(CurrentLine.Line.SplineKnots, 0);
                     knots2.CopyTo(CurrentLine.Line.SplineKnots, knots1.Length);
-                    Debug.DrawLine(CurrentLine.transform.TransformPoint(knotEnd),
-                        CurrentLine.transform.TransformPoint(knotEnd) + Vector3.up, Color.cyan, 0.25f);
-                    Debug.DrawLine(CurrentLine.transform.TransformPoint(knotStart),
-                        CurrentLine.transform.TransformPoint(knotStart) + Vector3.up, Color.cyan, 0.25f);
                     break;
                 }
                 case LocalToolMode.Straight:
@@ -381,11 +377,6 @@ namespace Sibz.Lines
                     int numberOfKnots = (int) math.ceil(curveLen / tool.KnotSpacing) + 2;
 
                     float3[] splineKnots = new float3 [numberOfKnots];
-
-                    Debug.DrawLine(CurrentLine.transform.TransformPoint(knotStart),
-                        CurrentLine.transform.TransformPoint(knotStart) + Vector3.up, Color.cyan, 0.25f);
-                    Debug.DrawLine(CurrentLine.transform.TransformPoint(knotEnd),
-                        CurrentLine.transform.TransformPoint(knotEnd) + Vector3.up, Color.cyan, 0.25f);
 
                     for (int i = 0; i < numberOfKnots; i++)
                     {
