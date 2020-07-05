@@ -1,6 +1,5 @@
 ﻿using System;
 using Unity.Mathematics;
-using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -38,7 +37,7 @@ namespace Sibz.Lines
                 }
 
                 float minLen = tool.MinCurveLength;
-                float curveLen =  ProjectedCurveLengthOnXAndZAxisOnly; //CurrentLine.Line.CurveLength;//
+                float curveLen =  ProjectedCurveLengthOnXAndZAxisOnly;
                 return math.max(originDistance * curveLen > curveLen - minLen
                     ? (curveLen - minLen) / curveLen
                     : originDistance, minLen / curveLen);
@@ -56,7 +55,7 @@ namespace Sibz.Lines
                     return 0f;
                 }
                 float minLen = tool.MinCurveLength;
-                float curveLen = ProjectedCurveLengthOnXAndZAxisOnly;//CurrentLine.Line.CurveLength;//
+                float curveLen = ProjectedCurveLengthOnXAndZAxisOnly;
                 return math.max(endDistance * curveLen > curveLen - minLen
                     ? (curveLen - minLen) / curveLen
                     : endDistance, minLen / curveLen);
@@ -250,15 +249,12 @@ namespace Sibz.Lines
             Transform endTx = CurrentLine.EndNode.transform;
             float3 originPoint = originTx.localPosition;
             float3 endPoint = endTx.localPosition;
-            float curveLen = ProjectedCurveLengthOnXAndZAxisOnly; //CurrentLine.Line.CurveLength;//
+            float curveLen = ProjectedCurveLengthOnXAndZAxisOnly;
 
             float3 controlPoint1 = default, controlPoint2;
             switch (localMode)
             {
                 case LocalToolMode.CubicBezier:
-                    //controlPoint1 = originTx.localPosition + CurrentLine.transform.InverseTransformDirection(originTx.forward) * (curveLen * OriginDistance);
-                    //controlPoint2 = endTx.localPosition + CurrentLine.transform.InverseTransformDirection(endTx.forward) * (curveLen * EndDistance);
-                    //break;
                 case LocalToolMode.StraightOriginAndEndCurves:
                 case LocalToolMode.StraightOriginCurve:
                 case LocalToolMode.StraightEndCurve:
@@ -268,24 +264,6 @@ namespace Sibz.Lines
                 case LocalToolMode.Bezier:
                     controlPoint1 = GetControlPoint(OriginDistance*curveLen, CurrentLine.OriginNode.transform);
                     controlPoint2 = GetControlPoint(OriginDistance*curveLen, CurrentLine.EndNode.transform);
-                    /*if (!LineHelpers.TryGetTransformPathIntersection2D(
-                        CurrentLine.OriginNode.transform,
-                        CurrentLine.EndNode.transform,
-                        out Vector3 intersection
-                        ))
-                    {
-                        controlPoint1 = originTx.localPosition + CurrentLine.transform.InverseTransformDirection(originTx.forward) * (curveLen * OriginDistance);
-                        controlPoint2 = endTx.localPosition + CurrentLine.transform.InverseTransformDirection(endTx.forward) * (curveLen * OriginDistance);
-                        break;
-                    }
-
-                    if (originTx.right.GetSideOfLineXZ(originTx.InverseTransformPoint(intersection)) != LineHelpers.SideOfLine.Left)
-                    {
-                        localMode = LocalToolMode.CubicBezier;
-                        goto case LocalToolMode.CubicBezier;
-                    }
-                    controlPoint1 = new float3(intersection.x, math.lerp(originPoint.y, controlPoint1.y, 0.5f), intersection.z);
-                    controlPoint2 = controlPoint1;*/
                     break;
                 case LocalToolMode.Straight:
                     controlPoint1 = originPoint;
@@ -305,8 +283,6 @@ namespace Sibz.Lines
                 CurrentLine.transform.TransformPoint(curve.c1) + Vector3.up, Color.red, 0.25f);
             Debug.DrawLine(CurrentLine.transform.TransformPoint(curve.c2),
                 CurrentLine.transform.TransformPoint(curve.c2) + Vector3.up, Color.red, 0.25f);
-
-
         }
 
         private void AdjustEndNodeRotations()
@@ -344,32 +320,20 @@ namespace Sibz.Lines
         {
             float3 knotStart = CurrentLine.OriginNode.transform.localPosition;
             float3 knotEnd = CurrentLine.EndNode.transform.localPosition;
-            float curveLen =  ProjectedCurveLengthOnXAndZAxisOnly;//CurrentLine.Line.Length;//
+            float curveLen =  ProjectedCurveLengthOnXAndZAxisOnly;
             float originDist = OriginDistance * curveLen;
             float endDist = EndDistance * curveLen;
             switch (localMode)
             {
-                /*{
-                    var controlPoint = GetControlPoint(OriginDistance, CurrentLine.OriginNode.transform,
-                        out float adjustedDistance);
-                    var knots = GetPartCurveKnots(adjustedDistance, CurrentLine.OriginNode.transform.localPosition,
-                        controlPoint, knotEnd);
-                    CurrentLine.Line.SplineKnots = new float3[knots.Length + 1];
-                    knots.CopyTo(CurrentLine.Line.SplineKnots, 0);
-                    CurrentLine.Line.SplineKnots[knots.Length] = knotEnd;
-                    Debug.DrawLine(CurrentLine.transform.TransformPoint(knotEnd),
-                        CurrentLine.transform.TransformPoint(knotEnd) + Vector3.up, Color.cyan, 0.25f);
-                    return;
-                }*/
+
                 case LocalToolMode.StraightOriginCurve:
                 case LocalToolMode.StraightEndCurve:
                 {
                     bool origin = localMode == LocalToolMode.StraightOriginCurve;
-                    //float adjustedDistance;
-                    var controlPoint = origin
+                    float3 controlPoint = origin
                         ? curve.c1
                         : curve.c2;
-                    var knots = origin
+                    float3[] knots = origin
                         ? GetPartCurveKnots(originDist, CurrentLine.OriginNode.transform.localPosition,
                             controlPoint, knotEnd)
                         : GetPartCurveKnots(endDist, CurrentLine.EndNode.transform.localPosition,
@@ -385,11 +349,9 @@ namespace Sibz.Lines
                 }
                 case LocalToolMode.StraightOriginAndEndCurves:
                 {
-                    var controlPoint1 = GetControlPoint(originDist, CurrentLine.OriginNode.transform);
-                    var controlPoint2 = GetControlPoint(endDist, CurrentLine.EndNode.transform);
-                    var knots1 = GetPartCurveKnots(originDist, CurrentLine.OriginNode.transform.localPosition,
+                    float3[] knots1 = GetPartCurveKnots(originDist, CurrentLine.OriginNode.transform.localPosition,
                         curve.c1, curve.c2);
-                    var knots2 = GetPartCurveKnots(endDist, CurrentLine.EndNode.transform.localPosition,
+                    float3[] knots2 = GetPartCurveKnots(endDist, CurrentLine.EndNode.transform.localPosition,
                         curve.c2, curve.c1, true);
                     CurrentLine.Line.SplineKnots = new float3[knots1.Length + knots2.Length];
                     knots1.CopyTo(CurrentLine.Line.SplineKnots, 0);
@@ -412,10 +374,8 @@ namespace Sibz.Lines
                     goto case LocalToolMode.CubicBezier;
                 case LocalToolMode.CubicBezier:
                     int numberOfKnots = (int) math.ceil(curveLen / tool.KnotSpacing) + 2;
-                    ;
+
                     float3[] splineKnots = new float3 [numberOfKnots];
-
-
 
                     Debug.DrawLine(CurrentLine.transform.TransformPoint(knotStart),
                         CurrentLine.transform.TransformPoint(knotStart) + Vector3.up, Color.cyan, 0.25f);
@@ -425,9 +385,7 @@ namespace Sibz.Lines
                     for (int i = 0; i < numberOfKnots; i++)
                     {
                         float t = (float) i / (numberOfKnots - 1);
-                        float3 knot = localMode == LocalToolMode.Bezier
-                            ? Bezier.GetVectorOnCurve(curve/*.c0, curve.c1, curve.c3*/, t)
-                            : Bezier.GetVectorOnCurve(curve, t);
+                        float3 knot = Bezier.GetVectorOnCurve(curve, t);
                         splineKnots[i] = knot;
                         Debug.DrawLine(CurrentLine.transform.TransformPoint(knot),
                             CurrentLine.transform.TransformPoint(knot) + Vector3.up, Color.yellow, 0.05f);
@@ -440,16 +398,8 @@ namespace Sibz.Lines
             }
         }
 
-        private float3 GetControlPoint(float distance, Transform originTx/*, out float adjustedDistance*/)
+        private float3 GetControlPoint(float distance, Transform originTx)
         {
-            /*float lineP2PLength = CurrentLine.Line.CurveLength;
-            adjustedDistance =
-                localMode == LocalToolMode.StraightOriginAndEndCurves &&
-                lineP2PLength < OriginDistance + EndDistance
-                    ? distance / (OriginDistance + EndDistance) * lineP2PLength
-                    : math.min(distance, lineP2PLength);
-            return originTx.localPosition + originTx.forward * (adjustedDistance / 2f);
-                    */
             return originTx.localPosition + CurrentLine.transform.InverseTransformDirection(originTx.forward) * (distance / 2f);
         }
 
@@ -534,17 +484,6 @@ namespace Sibz.Lines
         public void EndLine()
         {
             CurrentLine.Line.NodeCollidersEnabled = true;
-            /*LineBehaviour line;
-            if (
-                OriginSnappedToNode &&
-                OriginSnappedToNode.transform.parent &&
-                (line = OriginSnappedToNode.transform.parent.GetComponent<LineBehaviour>()) &&
-                (line.OriginNode == OriginSnappedToNode || line.EndNode == OriginSnappedToNode)
-            )
-            {
-                line.MergeWith(CurrentLine as LineBehaviour, OriginSnappedToNode);
-            }*/
-
             ResetTool();
         }
 
