@@ -38,9 +38,11 @@ namespace Sibz.Lines
 
                 float minLen = tool.MinCurveLength;
                 float curveLen =  ProjectedCurveLengthOnXAndZAxisOnly;
+                //float scale = 1 + math.abs(math.dot(CurrentLine.OriginNode.transform.forward,
+                   // CurrentLine.OriginNode.transform.right));
                 return math.max(originDistance * curveLen > curveLen - minLen
                     ? (curveLen - minLen) / curveLen
-                    : originDistance, minLen / curveLen);
+                    : originDistance, minLen / curveLen);// * scale;
             }
             set => originDistance = value;
         }
