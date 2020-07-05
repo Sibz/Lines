@@ -316,6 +316,11 @@ namespace Sibz.Lines
                 originNodePos + CurrentLine.OriginNode.transform.forward);
         }
 
+        private float3 GetControlPoint(float distance, Transform originTx)
+        {
+            return originTx.localPosition + CurrentLine.transform.InverseTransformDirection(originTx.forward) * (distance / 2f);
+        }
+
         private void UpdateKnots()
         {
             float3 knotStart = CurrentLine.OriginNode.transform.localPosition;
@@ -396,11 +401,6 @@ namespace Sibz.Lines
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-        }
-
-        private float3 GetControlPoint(float distance, Transform originTx)
-        {
-            return originTx.localPosition + CurrentLine.transform.InverseTransformDirection(originTx.forward) * (distance / 2f);
         }
 
         private float3[] GetPartCurveKnots(
