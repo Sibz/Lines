@@ -1,0 +1,21 @@
+{
+    "name": "Lines Edit Mode Tests",
+    "rootNamespace": "",
+    "references": [
+        "GUID:c62b1eb94955a5043a6a861bc1637088",
+        "GUID:a5baed0c9693541a5bd947d336ec7659"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
