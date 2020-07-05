@@ -39,19 +39,12 @@ namespace Sibz.Lines
                 if (i != knots.Length - 1)
                 {
                     int triIndex = i * 6;
-                    //new[] { 0, 2, 1, 2, 3, 1 };
                     triangles[triIndex] = vertexIndex1 + 1;
                     triangles[triIndex + 1] = vertexIndex1 + 3;
                     triangles[triIndex + 2] = vertexIndex1 + 2;
                     triangles[triIndex + 3] = vertexIndex1 + 1;
                     triangles[triIndex + 4] = vertexIndex1 + 2;
                     triangles[triIndex + 5] = vertexIndex1;
-                    /*triangles[triIndex + 5] = vertexIndex1 + 1;
-                    triangles[triIndex + 4] = vertexIndex1 + 3;
-                    triangles[triIndex + 3] = vertexIndex1 + 2;
-                    triangles[triIndex + 2] = vertexIndex1 + 1;
-                    triangles[triIndex + 1] = vertexIndex1 + 2;
-                    triangles[triIndex] = vertexIndex1;*/
                 }
             }
 
