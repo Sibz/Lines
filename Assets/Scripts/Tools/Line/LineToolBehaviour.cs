@@ -9,7 +9,7 @@ namespace Sibz.Lines
         public LineBehaviour LineBehaviourPrefab;
 
         public float KnotSpacing = 0.25f;
-        public float MinCurveLength = 1f;
+        public float MinCurveLength = 2f;
         public float MinCurvedLineLength = 1f;
 
         public Material StraightMaterial;
