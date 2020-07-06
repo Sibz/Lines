@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Unity.Mathematics;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -160,7 +160,8 @@ namespace Sibz.Lines
 
             CurrentLine.OriginNode.transform.rotation =
                 originSnappedToNode
-                    ? Quaternion.LookRotation(CurrentLine.transform.InverseTransformDirection(-originSnappedToNode.transform.forward))
+                    ? Quaternion.LookRotation(
+                        CurrentLine.transform.InverseTransformDirection(-originSnappedToNode.transform.forward))
                     : rotation;
 
             CurrentLine.Line.NodeCollidersEnabled = false;
@@ -177,21 +178,13 @@ namespace Sibz.Lines
             switch (nodeType)
             {
                 case NodeType.Origin:
-                    OriginDistance = math.clamp(OriginDistance + adjustment, tool.MinCurveLength,
-                        CurrentLine.Line.CurveLength);
-                    if (OriginDistance + EndDistance > 1)
-                    {
-                        EndDistance = CurrentLine.Line.CurveLength - OriginDistance;
-                    }
+                    OriginDistance = math.clamp(OriginDistance + adjustment, 0, CurrentLine.Line.Length);
+                    //math.clamp(OriginDistance + adjustment, tool.MinCurveLength,
+                    //CurrentLine.Line.CurveLength);
 
                     break;
                 case NodeType.End:
-                    EndDistance = math.clamp(EndDistance + adjustment, tool.MinCurveLength,
-                        CurrentLine.Line.CurveLength);
-                    if (EndDistance + OriginDistance > 1)
-                    {
-                        OriginDistance = CurrentLine.Line.CurveLength - EndDistance;
-                    }
+                    EndDistance = math.clamp(EndDistance + adjustment, 0, CurrentLine.Line.Length);
 
                     break;
                 default:
@@ -212,9 +205,9 @@ namespace Sibz.Lines
             MoveEndNode();
             AdjustLinePosition();
             UpdateCurve();
-            UpdateKnots();
+            /*UpdateKnots();
             AdjustEndNodeRotations();
-            CurrentLine.Line.RebuildMesh();
+            CurrentLine.Line.RebuildMesh();*/
         }
 
         public void SetEndSnappedNode()
@@ -260,7 +253,6 @@ namespace Sibz.Lines
 
         private void UpdateCurve()
         {
-
             Transform originTx = CurrentLine.OriginNode.transform;
             Transform endTx = CurrentLine.EndNode.transform;
             float3 lineEndA = originTx.localPosition;
@@ -274,24 +266,62 @@ namespace Sibz.Lines
             b2.c0 = lineEndB;
 
             float l = math.distance(lineEndA, lineEndB);
-            float3 f1 = CurrentLine.transform.InverseTransformDirection(originTx.forward);
-            float3 f2 = CurrentLine.transform.InverseTransformDirection(endTx.forward);
 
-            b1.c1 = GetControlPointScaleAndLength(lineEndA, lineEndB, f1, OriginDistance, EndDistance, out float s1, out float h1);
-            b2.c1 = GetControlPointScaleAndLength(lineEndA, lineEndB, f2, OriginDistance, EndDistance, out float s2, out float h2);
+            float3x2 forwards = new float3x2(
+                CurrentLine.transform.InverseTransformDirection(originTx.forward),
+                CurrentLine.transform.InverseTransformDirection(endTx.forward));
+            ;
+            float2 distances = new float2(
+                Distance(math.normalize(lineEndB - lineEndA), forwards.c0, l),
+                Distance(math.normalize(lineEndA - lineEndB), forwards.c1, l));
+            float2 scales = new float2(
+                Scale(OriginDistance, EndDistance, distances, forwards, lineEndA, lineEndB),
+                Scale(EndDistance, OriginDistance, distances, forwards, lineEndB, lineEndA));
+            ;
 
-            b1.c2 = Target(b1.c1, b2.c1, h1, h2, s1);
-            b2.c2 = Target(b2.c1, b1.c1, h2, h1, s2);
-
-            float3 GetControlPointScaleAndLength(float3 p1, float3 p2, float3 f, float u1, float u2, out float s, out float h)
+            if (originSnappedToNode && !endSnappedToNode)
             {
-                float3 v = math.normalize(p2 - p1);
-                h = Distance(v, f, l);
-                s = Scale(u1, u2, h);
-                return p1 + f * h * s;
+                //originTx.rotation = originSnappedToNode.transform.forward;
+                b1.c1 = GetOrigin();
+                // Do Rotate
+                endTx.LookAt(CurrentLine.transform.TransformPoint(b1.c1));
+                b2.c1 = GetEnd();
+            }
+            else if (!originSnappedToNode && endSnappedToNode)
+            {
+                b2.c1 = GetEnd();
+                // Do Rotate
+                originTx.LookAt(b2.c1);
+                b1.c1 = GetOrigin();
+            }
+            else
+            {
+                if (!originSnappedToNode && !endSnappedToNode)
+                {
+                    originTx.LookAt(endTx.position);
+                    endTx.LookAt(originTx.position);
+                }
+
+                b1.c1 = GetOrigin();
+                b2.c1 = GetEnd();
             }
 
-            static float3 Target(float3 c1, float3 c2, float h, float hOther, float s) => c1 + math.normalize(c2 - c1) * math.distance(c1, c2) * (h / (h + hOther)) * s;
+            b1.c2 = Target(b1.c1, b2.c1, distances.x, distances.y, scales.x, scales.y);
+            b2.c2 = Target(b2.c1, b1.c1, distances.y, distances.x, scales.y, scales.x);
+
+            //Debug.Log(b1 + "\n" +  b2);
+
+            float3 GetOrigin() => GetControlPoint(forwards.c0, lineEndA, distances.x, scales.x);
+            float3 GetEnd() => GetControlPoint(forwards.c1, lineEndB, distances.y, scales.y);
+
+            static float3 GetControlPoint(float3 f, float3 p1, float h, float s) => p1 + f * h * s;
+
+            static float3 Target(float3 c1, float3 c2, float h1, float h2, float s1, float s2)
+            {
+                float d = math.distance(c1, c2);
+                float ht = h1 * s1 + h2 * s2;
+                return c1 + math.normalize(c2 - c1) * (ht > d ? d * (h1 * s1 / ht) : h1 * s1);
+            }
 
             static float Distance(float3 v, float3 f, float l)
             {
@@ -301,34 +331,51 @@ namespace Sibz.Lines
                 return l / 4 * math.cos(angle);
             }
 
-
-            static float Scale(float units, float otherUnits, float distance)
+            static float Dist(float3 a, float3 b) => math.distance(a,b);
+            static float CosD(float a) => math.cos(math.PI / 180 * a);
+            static float AngleD(float3 a, float3 b) => LineHelpers.AngleDegrees(a, b);
+            static float Scale(float units, float otherUnits, float2 distances, float3x2 forwards, float3 p1, float3 p2)
             {
-                float thisScale = math.min(units / distance, 2);
-                float otherScale = math.min(otherUnits / distance, 2);
 
-                if (thisScale + otherScale > 2)
+                /*float max1 = 2 * distances.x;
+                float c = Dist(p1, p2);
+                float b = distances.x;
+                float a = math.sqrt(b * b + c * c - 2 * b * c * CosD(AngleD(forwards.c0, math.normalize(p2-p1))));
+                float max2 = (distances.x + a) / 2;
+                //float mod = 2 * (1 + math.pow(angle,math.PI)/math.pow(180,3));
+                float thisScale = math.min(units / distances.x, math.max(max1, max2) / distances.x);
+                //float otherScale = math.min(otherUnits / distances.y, mod);
+                // Debug.Log(units + ":" + otherUnits + " d:" + distances + "\n" +
+                //           thisScale + ":" + otherScale);
+                /*if (thisScale + otherScale > 2)
                 {
-                    return 2 - otherScale;
-                }
+                    return 2 / (thisScale + otherScale) * thisScale / (otherScale + thisScale);
+                }#1#
 
-                return thisScale;
+                return thisScale;*/
+                return math.min(units / distances.y, 2);
             }
 
-            curve = new float3x4(
-                CurrentLine.OriginNode.transform.localPosition,
-                GetControlPoint(OriginDistance, CurrentLine.OriginNode.transform),
-                GetControlPoint(EndDistance, CurrentLine.EndNode.transform),
-                CurrentLine.EndNode.transform.localPosition);
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b1.c0),
+                CurrentLine.transform.TransformPoint(b1.c0) + originTx.forward * 1f, Color.white, 0.25f);
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b1.c0),
+                CurrentLine.transform.TransformPoint(b1.c0) + Vector3.up * 1.75f, Color.cyan, 0.25f);
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b1.c1),
+                CurrentLine.transform.TransformPoint(b1.c1) + Vector3.up * 1.5f, Color.red, 0.25f);
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b1.c2),
+                CurrentLine.transform.TransformPoint(b1.c2) + Vector3.up * 1.25f, Color.cyan, 0.25f);
 
-            Debug.DrawLine(CurrentLine.transform.TransformPoint(curve.c0),
-                CurrentLine.transform.TransformPoint(curve.c0) + Vector3.up * 1.25f, Color.cyan, 0.25f);
-            Debug.DrawLine(CurrentLine.transform.TransformPoint(curve.c3),
-                CurrentLine.transform.TransformPoint(curve.c3) + Vector3.up* 1.25f, Color.cyan, 0.25f);
-            Debug.DrawLine(CurrentLine.transform.TransformPoint(curve.c1),
-                CurrentLine.transform.TransformPoint(curve.c1) + Vector3.up* 1.25f, Color.red, 0.25f);
-            Debug.DrawLine(CurrentLine.transform.TransformPoint(curve.c2),
-                CurrentLine.transform.TransformPoint(curve.c2) + Vector3.up* 1.25f, Color.red, 0.25f);
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b2.c0),
+                CurrentLine.transform.TransformPoint(b2.c0) + endTx.forward * 1f, Color.white, 0.25f);
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b2.c0),
+                CurrentLine.transform.TransformPoint(b2.c0) + Vector3.up * 1.75f, Color.blue, 0.25f);
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b2.c1),
+                CurrentLine.transform.TransformPoint(b2.c1) + Vector3.up * 1.5f, Color.red, 0.25f);
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b2.c2),
+                CurrentLine.transform.TransformPoint(b2.c2) + Vector3.up * 1.25f, Color.blue, 0.25f);
+
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b1.c1),
+                CurrentLine.transform.TransformPoint(b2.c1), Color.green, 0.25f);
         }
 
         private void AdjustEndNodeRotations()
@@ -382,12 +429,11 @@ namespace Sibz.Lines
         {
             float3 knotStart = CurrentLine.OriginNode.transform.localPosition;
             float3 knotEnd = CurrentLine.EndNode.transform.localPosition;
-            float curveLen =   ProjectedCurveLengthOnXAndZAxisOnly; //CurrentLine.Line.CurveLength;//
+            float curveLen = ProjectedCurveLengthOnXAndZAxisOnly; //CurrentLine.Line.CurveLength;//
             float originDist = OriginDistance * curveLen;
             float endDist = EndDistance * curveLen;
             switch (localMode)
             {
-
                 case LocalToolMode.StraightOriginCurve:
                 case LocalToolMode.StraightEndCurve:
                 {
@@ -455,7 +501,8 @@ namespace Sibz.Lines
             float3 target,
             bool invert = false)
         {
-            float3 endPos = controlPoint + math.normalize(target - controlPoint) * math.distance(controlPoint, originPos);
+            float3 endPos = controlPoint +
+                            math.normalize(target - controlPoint) * math.distance(controlPoint, originPos);
 
             float3 worldOriginPos = CurrentLine.transform.TransformPoint(originPos);
             float3 worldControlPoint = CurrentLine.transform.TransformPoint(controlPoint);
@@ -542,6 +589,7 @@ namespace Sibz.Lines
 
         public int projectedCurveLengthOnXAndZAxisOnlyCacheFrameCached;
         public float? projectedCurveLengthOnXAndZAxisOnlyCache;
+
         public float ProjectedCurveLengthOnXAndZAxisOnly
         {
             get
@@ -551,6 +599,7 @@ namespace Sibz.Lines
                 {
                     return projectedCurveLengthOnXAndZAxisOnlyCache.Value;
                 }
+
                 projectedCurveLengthOnXAndZAxisOnlyCacheFrameCached = Time.frameCount;
 
                 float3 localCursorPosition = CurrentLine.transform.InverseTransformPoint(tool.transform.position);
@@ -561,11 +610,13 @@ namespace Sibz.Lines
                 int len = CurrentLine.Line.SplineKnots.Length;
                 if (len < 2)
                 {
-                    return (projectedCurveLengthOnXAndZAxisOnlyCache = math.distance(localOriginNodePosition, localCursorPosition)).Value;
+                    return (projectedCurveLengthOnXAndZAxisOnlyCache =
+                        math.distance(localOriginNodePosition, localCursorPosition)).Value;
                 }
+
                 float3[] splineKnots = new float3[len];
                 CurrentLine.Line.SplineKnots.CopyTo(splineKnots, 0);
-                if (localCursorPosition.IsCloseTo(splineKnots[len-1], tool.KnotSpacing/2))
+                if (localCursorPosition.IsCloseTo(splineKnots[len - 1], tool.KnotSpacing / 2))
                 {
                     return (projectedCurveLengthOnXAndZAxisOnlyCache = CurrentLine.Line.CurveLength).Value;
                 }
@@ -575,7 +626,7 @@ namespace Sibz.Lines
                 {
                     splineKnots[i].y = 0;
                     float3 knotCurrent = splineKnots[i];
-                    float3 knotPrevious = splineKnots[i-1];
+                    float3 knotPrevious = splineKnots[i - 1];
 
                     float3 currentForward = math.normalize(knotCurrent - knotPrevious);
                     float3 cursorForward = math.normalize(localCursorPosition - knotCurrent);
@@ -586,12 +637,12 @@ namespace Sibz.Lines
                         distance += math.distance(knotPrevious, localCursorPosition);
                         break;
                     }
+
                     distance += math.distance(knotCurrent, knotPrevious);
                     /*if (i == len - 1)
                     {
                         distance += math.distance(knotCurrent, localCursorPosition);
                     }*/
-
                 }
 
                 return (projectedCurveLengthOnXAndZAxisOnlyCache = distance).Value;
