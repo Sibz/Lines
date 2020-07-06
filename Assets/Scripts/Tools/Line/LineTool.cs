@@ -9,8 +9,8 @@ namespace Sibz.Lines
     {
         public LineBehaviour CurrentLine;
 
-        private const float DefaultOriginDistance = 0.5f;
-        private const float DefaultEndDistance = 0.5f;
+        private const float DefaultOriginDistance = 4f;
+        private const float DefaultEndDistance = 4f;
 
         private readonly GameObject linePrefab;
         private readonly GameObject cursor;
@@ -76,8 +76,8 @@ namespace Sibz.Lines
             }
             set => endDistance = value;
         }*/
-        public float EndDistance { get; set; }
-        public float OriginDistance { get; set; }
+        public float EndDistance { get; set; } = DefaultOriginDistance;
+        public float OriginDistance { get; set; } = DefaultEndDistance;
 
         private LocalToolMode localMode;
 
@@ -315,36 +315,6 @@ namespace Sibz.Lines
                 return thisScale;
             }
 
-            /*Transform originTx = CurrentLine.OriginNode.transform;
-            Transform endTx = CurrentLine.EndNode.transform;
-            float3 originPoint = originTx.localPosition;
-            float3 endPoint = endTx.localPosition;
-            //float curveLen = ProjectedCurveLengthOnXAndZAxisOnly; //CurrentLine.Line.CurveLength; //
-
-            float3 controlPoint1, controlPoint2;
-            /*switch (localMode)
-            {
-                case LocalToolMode.CubicBezier:
-                case LocalToolMode.StraightOriginAndEndCurves:
-                case LocalToolMode.StraightOriginCurve:
-                case LocalToolMode.StraightEndCurve:
-                    controlPoint1 = GetControlPoint(OriginDistance, CurrentLine.OriginNode.transform);
-                    controlPoint2 = GetControlPoint(EndDistance, CurrentLine.EndNode.transform);
-                    break;
-                case LocalToolMode.Bezier:
-                    controlPoint1 = GetControlPoint(OriginDistance, CurrentLine.OriginNode.transform);
-                    controlPoint2 = GetControlPoint(OriginDistance, CurrentLine.EndNode.transform);
-                    break;
-                case LocalToolMode.Straight:
-                    controlPoint2 = controlPoint1 = math.lerp(originPoint, endPoint, 0.5f);
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
-            #1#
-
-            controlPoint1 = GetControlPoint(OriginDistance, CurrentLine.OriginNode.transform);
-            controlPoint2 = GetControlPoint(EndDistance, CurrentLine.EndNode.transform);*/
             curve = new float3x4(
                 CurrentLine.OriginNode.transform.localPosition,
                 GetControlPoint(OriginDistance, CurrentLine.OriginNode.transform),

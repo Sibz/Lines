@@ -57,12 +57,12 @@ namespace Sibz.Lines
 
             if (Input.GetKey(KeyCode.LeftControl) && Input.mouseScrollDelta != Vector2.zero)
             {
-                lineTool.AdjustDistance(LineTool.NodeType.Origin, Input.mouseScrollDelta.y * 0.03f);
+                lineTool.AdjustDistance(LineTool.NodeType.Origin, Input.mouseScrollDelta.y * 0.33f);
             }
 
             if (Input.GetKey(KeyCode.LeftAlt) && Input.mouseScrollDelta != Vector2.zero)
             {
-                lineTool.AdjustDistance(LineTool.NodeType.End, Input.mouseScrollDelta.y * 0.03f);
+                lineTool.AdjustDistance(LineTool.NodeType.End, Input.mouseScrollDelta.y * 0.33f);
             }
 
             if (Input.GetKeyUp(KeyCode.Tab))
