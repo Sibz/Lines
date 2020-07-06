@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Unity.Mathematics;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -160,7 +160,7 @@ namespace Sibz.Lines
 
             CurrentLine.OriginNode.transform.rotation =
                 originSnappedToNode
-                    ? Quaternion.LookRotation(-originSnappedToNode.transform.forward)
+                    ? Quaternion.LookRotation(CurrentLine.transform.InverseTransformDirection(-originSnappedToNode.transform.forward))
                     : rotation;
 
             CurrentLine.Line.NodeCollidersEnabled = false;
