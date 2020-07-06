@@ -26,7 +26,7 @@ namespace Sibz.Lines
 
         public LineToolMode Mode { get; set; }
 
-        private float originDistance;
+        /*private float originDistance;
         private float OriginDistance
         {
             get
@@ -37,7 +37,7 @@ namespace Sibz.Lines
                 }
 
                 float minLen = tool.MinCurveLength;
-                float curveLen = ProjectedCurveLengthOnXAndZAxisOnly;
+                float curveLen = CurrentLine.Line.CurveLength;//ProjectedCurveLengthOnXAndZAxisOnly;
                 //float scale = 1 + math.abs(math.dot(CurrentLine.OriginNode.transform.forward,
                    // CurrentLine.OriginNode.transform.right));
                    bool condition = originDistance * curveLen > curveLen - minLen;
@@ -75,7 +75,9 @@ namespace Sibz.Lines
                     : endDistance, minLen / curveLen);
             }
             set => endDistance = value;
-        }
+        }*/
+        public float EndDistance { get; set; }
+        public float OriginDistance { get; set; }
 
         private LocalToolMode localMode;
 
@@ -175,20 +177,20 @@ namespace Sibz.Lines
             switch (nodeType)
             {
                 case NodeType.Origin:
-                    OriginDistance = math.clamp(OriginDistance + adjustment, minLengthPercent,
-                        1 - minLengthPercent);
+                    OriginDistance = math.clamp(OriginDistance + adjustment, tool.MinCurveLength,
+                        CurrentLine.Line.CurveLength);
                     if (OriginDistance + EndDistance > 1)
                     {
-                        EndDistance = 1 - OriginDistance;
+                        EndDistance = CurrentLine.Line.CurveLength - OriginDistance;
                     }
 
                     break;
                 case NodeType.End:
-                    EndDistance = math.clamp(EndDistance + adjustment, minLengthPercent,
-                        1 - minLengthPercent);
+                    EndDistance = math.clamp(EndDistance + adjustment, tool.MinCurveLength,
+                        CurrentLine.Line.CurveLength);
                     if (EndDistance + OriginDistance > 1)
                     {
-                        OriginDistance = 1 - EndDistance;
+                        OriginDistance = CurrentLine.Line.CurveLength - EndDistance;
                     }
 
                     break;
@@ -258,14 +260,69 @@ namespace Sibz.Lines
 
         private void UpdateCurve()
         {
+
             Transform originTx = CurrentLine.OriginNode.transform;
+            Transform endTx = CurrentLine.EndNode.transform;
+            float3 lineEndA = originTx.localPosition;
+            float3 lineEndB = endTx.localPosition;
+
+            // Two curves  b1, b2
+            float3x3 b1, b2;
+
+            // c0 is the origin
+            b1.c0 = lineEndA;
+            b2.c0 = lineEndB;
+
+            float l = math.distance(lineEndA, lineEndB);
+            float3 f1 = CurrentLine.transform.InverseTransformDirection(originTx.forward);
+            float3 f2 = CurrentLine.transform.InverseTransformDirection(endTx.forward);
+
+            b1.c1 = GetControlPointScaleAndLength(lineEndA, lineEndB, f1, OriginDistance, EndDistance, out float s1, out float h1);
+            b2.c1 = GetControlPointScaleAndLength(lineEndA, lineEndB, f2, OriginDistance, EndDistance, out float s2, out float h2);
+
+            b1.c2 = Target(b1.c1, b2.c1, h1, h2, s1);
+            b2.c2 = Target(b2.c1, b1.c1, h2, h1, s2);
+
+            float3 GetControlPointScaleAndLength(float3 p1, float3 p2, float3 f, float u1, float u2, out float s, out float h)
+            {
+                float3 v = math.normalize(p2 - p1);
+                h = Distance(v, f, l);
+                s = Scale(u1, u2, h);
+                return p1 + f * h * s;
+            }
+
+            static float3 Target(float3 c1, float3 c2, float h, float hOther, float s) => c1 + math.normalize(c2 - c1) * math.distance(c1, c2) * (h / (h + hOther)) * s;
+
+            static float Distance(float3 v, float3 f, float l)
+            {
+                float angle = LineHelpers.AngleDegrees(v, f) / 2;
+                angle = angle > 45 ? 45 + (angle - 45) / 2 : angle;
+                angle = math.PI / 180 * angle;
+                return l / 4 * math.cos(angle);
+            }
+
+
+            static float Scale(float units, float otherUnits, float distance)
+            {
+                float thisScale = math.min(units / distance, 2);
+                float otherScale = math.min(otherUnits / distance, 2);
+
+                if (thisScale + otherScale > 2)
+                {
+                    return 2 - otherScale;
+                }
+
+                return thisScale;
+            }
+
+            /*Transform originTx = CurrentLine.OriginNode.transform;
             Transform endTx = CurrentLine.EndNode.transform;
             float3 originPoint = originTx.localPosition;
             float3 endPoint = endTx.localPosition;
-            float curveLen = ProjectedCurveLengthOnXAndZAxisOnly; //CurrentLine.Line.CurveLength; //
+            //float curveLen = ProjectedCurveLengthOnXAndZAxisOnly; //CurrentLine.Line.CurveLength; //
 
-            float3 controlPoint1 = default, controlPoint2;
-            switch (localMode)
+            float3 controlPoint1, controlPoint2;
+            /*switch (localMode)
             {
                 case LocalToolMode.CubicBezier:
                 case LocalToolMode.StraightOriginAndEndCurves:
@@ -284,12 +341,16 @@ namespace Sibz.Lines
                 default:
                     throw new NotImplementedException();
             }
+            #1#
 
+            controlPoint1 = GetControlPoint(OriginDistance, CurrentLine.OriginNode.transform);
+            controlPoint2 = GetControlPoint(EndDistance, CurrentLine.EndNode.transform);*/
             curve = new float3x4(
-                originPoint,
-                controlPoint1,
-                controlPoint2,
-                endPoint);
+                CurrentLine.OriginNode.transform.localPosition,
+                GetControlPoint(OriginDistance, CurrentLine.OriginNode.transform),
+                GetControlPoint(EndDistance, CurrentLine.EndNode.transform),
+                CurrentLine.EndNode.transform.localPosition);
+
             Debug.DrawLine(CurrentLine.transform.TransformPoint(curve.c0),
                 CurrentLine.transform.TransformPoint(curve.c0) + Vector3.up * 1.25f, Color.cyan, 0.25f);
             Debug.DrawLine(CurrentLine.transform.TransformPoint(curve.c3),
