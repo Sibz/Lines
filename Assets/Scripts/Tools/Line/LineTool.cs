@@ -272,11 +272,11 @@ namespace Sibz.Lines
                 CurrentLine.transform.InverseTransformDirection(endTx.forward));
             ;
             float2 distances = new float2(
-                Distance(math.normalize(lineEndB - lineEndA), forwards.c0, l),
-                Distance(math.normalize(lineEndA - lineEndB), forwards.c1, l));
+                Distance(lineEndA, lineEndB, forwards.c0),
+                Distance(lineEndB, lineEndA, forwards.c1));
             float2 scales = new float2(
-                Scale(OriginDistance, EndDistance, distances, forwards, lineEndA, lineEndB),
-                Scale(EndDistance, OriginDistance, distances, forwards, lineEndB, lineEndA));
+                Scale(OriginDistance, distances.x, forwards.c0, lineEndA, lineEndB),
+                Scale(EndDistance, distances.y, forwards.c1, lineEndB, lineEndA));
             ;
 
             if (originSnappedToNode && !endSnappedToNode)
@@ -323,20 +323,31 @@ namespace Sibz.Lines
                 return c1 + math.normalize(c2 - c1) * (ht > d ? d * (h1 * s1 / ht) : h1 * s1);
             }
 
-            static float Distance(float3 v, float3 f, float l)
+            //static float Distance(float3 v, float3 f, float l)
+            static float Distance(float3 p1, float3 p2, float3 forwards)
             {
-                float angle = LineHelpers.AngleDegrees(v, f) / 2;
-                angle = angle > 45 ? 45 + (angle - 45) / 2 : angle;
+                /*float angle = LineHelpers.AngleDegrees(v, f) / 2;
+                angle = angle > 45 ? 45 + (angle - 45) / 1.1f : angle;
                 angle = math.PI / 180 * angle;
-                return l / 4 * math.cos(angle);
+                return l / 4 * math.cos(angle);*/
+                float angle = AngleD(forwards, math.normalize(p2 - p1));
+                angle = angle > 90 ? 90 + (angle - 90) / 2f : angle;
+
+                float b = math.abs((math.distance(p2,p1) / SinD(180 - 2 * angle)) * SinD(angle));
+                return b;
             }
 
             static float Dist(float3 a, float3 b) => math.distance(a,b);
             static float CosD(float a) => math.cos(math.PI / 180 * a);
+            static float SinD(float a) => math.sin(math.PI / 180 * a);
             static float AngleD(float3 a, float3 b) => LineHelpers.AngleDegrees(a, b);
-            static float Scale(float units, float otherUnits, float2 distances, float3x2 forwards, float3 p1, float3 p2)
+            static float Scale(float units, float distance, float3 forwards, float3 p1, float3 p2)
             {
 
+                float angle = AngleD(forwards, math.normalize(p2 - p1));
+
+                float b = math.abs((math.distance(p2,p1) / SinD(180 - 2 * angle)) * SinD(angle));
+                Debug.Log(angle + " : " + b);
                 /*float max1 = 2 * distances.x;
                 float c = Dist(p1, p2);
                 float b = distances.x;
@@ -353,7 +364,7 @@ namespace Sibz.Lines
                 }#1#
 
                 return thisScale;*/
-                return math.min(units / distances.y, 2);
+                return math.min(units / distance, 1);
             }
 
             Debug.DrawLine(CurrentLine.transform.TransformPoint(b1.c0),
