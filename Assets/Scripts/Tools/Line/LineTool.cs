@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Unity.Mathematics;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -9,14 +9,30 @@ namespace Sibz.Lines
     {
         public LineBehaviour CurrentLine;
 
-        private const float DefaultOriginDistance = 0.5f;
-        private const float DefaultEndDistance = 0.5f;
+        private float ratio1 = 1f;
+
+        public float Ratio1
+        {
+            get => ratio1;
+            set => ratio1 = math.clamp(value, 0.25f, 1.75f);
+        }
+
+        private float ratio2 = 1f;
+
+        public float Ratio2
+        {
+            get => ratio2;
+            set => ratio2 = math.clamp(value, 0.25f, 1.75f);
+        }
+
+        private const float DefaultOriginDistance = 4f;
+        private const float DefaultEndDistance = 4f;
 
         private readonly GameObject linePrefab;
         private readonly GameObject cursor;
         private readonly LineToolBehaviour tool;
 
-        private float3x4 curve;
+        private float3x3 curve1, curve2;
 
         private readonly SnapNotifierBehaviour snapNotifier;
         private GameObject originSnappedToNode;
@@ -25,57 +41,8 @@ namespace Sibz.Lines
         private MeshRenderer meshRenderer;
 
         public LineToolMode Mode { get; set; }
-
-        private float originDistance;
-        private float OriginDistance
-        {
-            get
-            {
-                if (!CurrentLine)
-                {
-                    return 0f;
-                }
-
-                float minLen = tool.MinCurveLength;
-                float curveLen = ProjectedCurveLengthOnXAndZAxisOnly;
-                //float scale = 1 + math.abs(math.dot(CurrentLine.OriginNode.transform.forward,
-                   // CurrentLine.OriginNode.transform.right));
-                   bool condition = originDistance * curveLen > curveLen - minLen;
-                   if (condition)
-                   {
-                       Debug.Log("originDistance was too long");
-                   }
-
-
-                return math.max(condition
-                    ? (curveLen - minLen) / curveLen
-                    : originDistance, minLen / curveLen);// * scale;
-            }
-            set => originDistance = value;
-        }
-
-        private float endDistance;
-        private float EndDistance
-        {
-            get
-            {
-                if (!CurrentLine)
-                {
-                    return 0f;
-                }
-                float minLen = tool.MinCurveLength;
-                float curveLen = ProjectedCurveLengthOnXAndZAxisOnly;
-                bool condition = endDistance * curveLen > curveLen - minLen;
-                if (condition)
-                {
-                    Debug.Log("endDistance was too long");
-                }
-                return math.max(condition
-                    ? (curveLen - minLen) / curveLen
-                    : endDistance, minLen / curveLen);
-            }
-            set => endDistance = value;
-        }
+        public float EndDistance { get; set; } = DefaultOriginDistance;
+        public float OriginDistance { get; set; } = DefaultEndDistance;
 
         private LocalToolMode localMode;
 
@@ -84,9 +51,7 @@ namespace Sibz.Lines
             Straight,
             StraightOriginCurve,
             StraightEndCurve,
-            StraightOriginAndEndCurves,
-            CubicBezier,
-            Bezier
+            StraightOriginAndEndCurves
         }
 
         public void ResetTool()
@@ -94,6 +59,7 @@ namespace Sibz.Lines
             CurrentLine = null;
             OriginDistance = DefaultOriginDistance;
             EndDistance = DefaultEndDistance;
+            Ratio1 = 1f;
         }
 
         public void SetToolMode(LineToolMode mode)
@@ -158,7 +124,8 @@ namespace Sibz.Lines
 
             CurrentLine.OriginNode.transform.rotation =
                 originSnappedToNode
-                    ? Quaternion.LookRotation(-originSnappedToNode.transform.forward)
+                    ? Quaternion.LookRotation(
+                        CurrentLine.transform.InverseTransformDirection(-originSnappedToNode.transform.forward))
                     : rotation;
 
             CurrentLine.Line.NodeCollidersEnabled = false;
@@ -171,26 +138,13 @@ namespace Sibz.Lines
                 return;
             }
 
-            float minLengthPercent = tool.MinCurveLength / CurrentLine.Line.CurveLength;
             switch (nodeType)
             {
                 case NodeType.Origin:
-                    OriginDistance = math.clamp(OriginDistance + adjustment, minLengthPercent,
-                        1 - minLengthPercent);
-                    if (OriginDistance + EndDistance > 1)
-                    {
-                        EndDistance = 1 - OriginDistance;
-                    }
-
+                    OriginDistance = math.clamp(OriginDistance + adjustment, tool.MinCurveLength, CurrentLine.Line.Length);
                     break;
                 case NodeType.End:
-                    EndDistance = math.clamp(EndDistance + adjustment, minLengthPercent,
-                        1 - minLengthPercent);
-                    if (EndDistance + OriginDistance > 1)
-                    {
-                        OriginDistance = 1 - EndDistance;
-                    }
-
+                    EndDistance = math.clamp(EndDistance + adjustment, tool.MinCurveLength, CurrentLine.Line.Length);
                     break;
                 default:
                     throw new NotImplementedException();
@@ -211,7 +165,6 @@ namespace Sibz.Lines
             AdjustLinePosition();
             UpdateCurve();
             UpdateKnots();
-            AdjustEndNodeRotations();
             CurrentLine.Line.RebuildMesh();
         }
 
@@ -229,210 +182,228 @@ namespace Sibz.Lines
 
         private void SetToolMode()
         {
-            bool isTooShortToCurve = CurrentLine.Line.Length < tool.MinCurvedLineLength;
-
-            LocalToolMode StraightOrCurved() =>
-                originSnappedToNode && endSnappedToNode
-                    ? LocalToolMode.StraightOriginAndEndCurves
-                    : originSnappedToNode
-                        ? LocalToolMode.StraightOriginCurve
-                        : endSnappedToNode
-                            ? LocalToolMode.StraightEndCurve
-                            : LocalToolMode.Straight;
-
-            localMode = Mode switch
+            if (CurrentLine.Line.Length < tool.MinCurvedLineLength)
             {
-                LineToolMode.CubicBezier => isTooShortToCurve
-                    ? LocalToolMode.Straight
-                    : LocalToolMode.CubicBezier,
-                // TODO If ends are more than 180' different then use Cubic
-                LineToolMode.Curve => isTooShortToCurve
-                    ? LocalToolMode.Straight
-                    : LocalToolMode.Bezier,
-                LineToolMode.Straight => isTooShortToCurve
-                    ? LocalToolMode.Straight
-                    : StraightOrCurved(),
-                var _ => throw new NotImplementedException()
-            };
+                localMode = LocalToolMode.Straight;
+            }
+            else if (endSnappedToNode && originSnappedToNode)
+            {
+                localMode = LocalToolMode.StraightOriginAndEndCurves;
+            }
+            else if (endSnappedToNode)
+            {
+                localMode = LocalToolMode.StraightEndCurve;
+            }
+            else if (originSnappedToNode)
+
+            {
+                localMode = LocalToolMode.StraightOriginCurve;
+            }
+            else
+            {
+                localMode = LocalToolMode.Straight;
+            }
         }
 
         private void UpdateCurve()
         {
             Transform originTx = CurrentLine.OriginNode.transform;
             Transform endTx = CurrentLine.EndNode.transform;
-            float3 originPoint = originTx.localPosition;
-            float3 endPoint = endTx.localPosition;
-            float curveLen = ProjectedCurveLengthOnXAndZAxisOnly; //CurrentLine.Line.CurveLength; //
+            float3 lineEndA = originTx.localPosition;
+            float3 lineEndB = endTx.localPosition;
 
-            float3 controlPoint1 = default, controlPoint2;
-            switch (localMode)
+            // Two curves  b1, b2
+            float3x3 b1, b2;
+
+            // c0 is the origin
+            b1.c0 = lineEndA;
+            b2.c0 = lineEndB;
+
+            float3x2 forwards = new float3x2(
+                CurrentLine.transform.InverseTransformDirection(originTx.forward),
+                CurrentLine.transform.InverseTransformDirection(endTx.forward));
+
+            float2 distances = new float2(
+                Distance(lineEndA, lineEndB, forwards.c0),
+                Distance(lineEndB, lineEndA, forwards.c1));
+
+            float2 scales = new float2(
+                Scale(OriginDistance, distances.x),
+                Scale(EndDistance, distances.y));
+
+            if (localMode == LocalToolMode.StraightOriginCurve)
             {
-                case LocalToolMode.CubicBezier:
-                case LocalToolMode.StraightOriginAndEndCurves:
-                case LocalToolMode.StraightOriginCurve:
-                case LocalToolMode.StraightEndCurve:
-                    controlPoint1 = GetControlPoint(OriginDistance, CurrentLine.OriginNode.transform);
-                    controlPoint2 = GetControlPoint(EndDistance, CurrentLine.EndNode.transform);
-                    break;
-                case LocalToolMode.Bezier:
-                    controlPoint1 = GetControlPoint(OriginDistance, CurrentLine.OriginNode.transform);
-                    controlPoint2 = GetControlPoint(OriginDistance, CurrentLine.EndNode.transform);
-                    break;
-                case LocalToolMode.Straight:
-                    controlPoint2 = controlPoint1 = math.lerp(originPoint, endPoint, 0.5f);
-                    break;
-                default:
-                    throw new NotImplementedException();
+                distances.y = 0f;
+                b1.c1 = GetOrigin();
+                // Do Rotate
+                endTx.LookAt(CurrentLine.transform.TransformPoint(b1.c1));
+                b1.c2 = Target(b1.c1, b2.c0, distances.x, distances.y, scales.x, scales.y, ratio1);
+                b2.c2 = b2.c1 = b2.c0;
+            }
+            else if (localMode == LocalToolMode.StraightEndCurve)
+            {
+                distances.x = 0f;
+                b2.c1 = GetEnd();
+                // Do Rotate
+                originTx.LookAt(b2.c1);
+                b2.c2 = Target(b2.c1, b1.c0, distances.y, distances.x, scales.y, scales.x, ratio2);
+                b1.c2 = b1.c1 = b1.c0;
+            }
+            else
+            {
+                if (localMode == LocalToolMode.Straight)
+                {
+                    if (!originSnappedToNode)
+                    {
+                        originTx.LookAt(endTx.position);
+                    }
+
+                    if (!endSnappedToNode)
+                    {
+                        endTx.LookAt(originTx.position);
+                    }
+                }
+
+                b1.c1 = GetOrigin();
+                b2.c1 = GetEnd();
+                b1.c2 = Target(b1.c1, b2.c1, distances.x, distances.y, scales.x, scales.y, ratio1);
+                b2.c2 = Target(b2.c1, b1.c1, distances.y, distances.x, scales.y, scales.x, ratio2);
             }
 
-            curve = new float3x4(
-                originPoint,
-                controlPoint1,
-                controlPoint2,
-                endPoint);
-            Debug.DrawLine(CurrentLine.transform.TransformPoint(curve.c0),
-                CurrentLine.transform.TransformPoint(curve.c0) + Vector3.up * 1.25f, Color.cyan, 0.25f);
-            Debug.DrawLine(CurrentLine.transform.TransformPoint(curve.c3),
-                CurrentLine.transform.TransformPoint(curve.c3) + Vector3.up* 1.25f, Color.cyan, 0.25f);
-            Debug.DrawLine(CurrentLine.transform.TransformPoint(curve.c1),
-                CurrentLine.transform.TransformPoint(curve.c1) + Vector3.up* 1.25f, Color.red, 0.25f);
-            Debug.DrawLine(CurrentLine.transform.TransformPoint(curve.c2),
-                CurrentLine.transform.TransformPoint(curve.c2) + Vector3.up* 1.25f, Color.red, 0.25f);
-        }
+            curve1 = b1;
+            curve2 = b2;
 
-        private void AdjustEndNodeRotations()
-        {
-            int knotsLength = CurrentLine.Line.SplineKnots.Length;
-            Transform endNodeTx = CurrentLine.EndNode.transform;
-            Transform originNodeTx = CurrentLine.OriginNode.transform;
-            Vector3 originNodePos = originNodeTx.position;
-            Vector3 endNodePos = endNodeTx.position;
-            if (!endSnappedToNode)
+            float3 GetOrigin() => GetControlPoint(forwards.c0, lineEndA, distances.x, scales.x, ratio1);
+            float3 GetEnd() => GetControlPoint(forwards.c1, lineEndB, distances.y, scales.y, ratio2);
+
+            static float3 GetControlPoint(float3 f, float3 p1, float h, float s, float r) => p1 + f * h * s * r;
+
+            static float3 Target(float3 c1, float3 c2, float h1, float h2, float s1, float s2, float r)
             {
-                endNodeTx.LookAt(knotsLength < 2
-                    ? originNodePos
-                    : CurrentLine.transform.TransformPoint(curve.c1));
+                float d = Dist(c1, c2);
+                float ht = h1 * s1 * (2 - r) + h2 * s2 * (2 - r);
+                return c1 + Normalize(c2 - c1) * (ht > d ? d * (h1 * s1 * (2 - r) / ht) : h1 * s1 * (2 - r));
             }
 
-            Debug.DrawLine(
-                endNodePos,
-                endNodePos + endNodeTx.forward);
-
-            if (!originSnappedToNode)
+            static float Distance(float3 p1, float3 p2, float3 forwards)
             {
-                Vector3 target = CurrentLine.Line.SplineKnots.Length > 1
-                    ? (Vector3) CurrentLine.Line.SplineKnots[1]
-                    : endNodePos;
-                originNodeTx.LookAt(CurrentLine.transform.TransformPoint(target));
+                float angle = AngleD(forwards, Normalize(p2 - p1));
+                angle = angle > 90 ? 90 + (angle - 90) / 2f : angle;
+                return Abs((Dist(p2, p1) / SinD(180 - 2 * angle)) * SinD(angle));
             }
 
-            Debug.DrawLine(
-                originNodePos,
-                originNodePos + CurrentLine.OriginNode.transform.forward);
-        }
+            static float Abs(float a) => math.abs(a);
+            static float3 Normalize(float3 a) => math.normalize(a);
+            static float Dist(float3 a, float3 b) => math.distance(a, b);
+            static float SinD(float a) => math.sin(math.PI / 180 * a);
+            static float AngleD(float3 a, float3 b) => LineHelpers.AngleDegrees(a, b);
+            static float Scale(float units, float distance) => math.min(units / distance, 1);
 
-        private float3 GetControlPoint(float distance, Transform originTx)
-        {
-            float3 originPos = originTx.localPosition;
-            /*float3 destPos = destTx.localPosition;
-            float len = CurrentLine.Line.Length;
-            float3 direction = destPos - originPos;*/
-            float3 forward = CurrentLine.transform.InverseTransformDirection(originTx.forward);
-            /*float3 destForward = CurrentLine.transform.InverseTransformDirection(destTx.forward);
-            /*float angle1 = LineHelpers.AngleDegrees(direction, forward);
-            float mod1 = angle1 / 180 * 2 + 1;
-            float angle2 = LineHelpers.AngleDegrees(destForward, forward);
-            float mod2 = angle2 / 180;#1#
-            float x = len * (distance / 2);//* (mod1 - mod2);//(math.abs(math.dot(direction, forward)) / 10);*/
-            return originPos + forward * (distance / 2);
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b1.c0),
+                CurrentLine.transform.TransformPoint(b1.c0) + originTx.forward * 1f, Color.white, 0.25f);
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b1.c0),
+                CurrentLine.transform.TransformPoint(b1.c0) + Vector3.up * 1.75f, Color.cyan, 0.25f);
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b1.c1),
+                CurrentLine.transform.TransformPoint(b1.c1) + Vector3.up * 1.5f, Color.red, 0.25f);
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b1.c2),
+                CurrentLine.transform.TransformPoint(b1.c2) + Vector3.up * 1.25f, Color.cyan, 0.25f);
+
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b2.c0),
+                CurrentLine.transform.TransformPoint(b2.c0) + endTx.forward * 1f, Color.white, 0.25f);
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b2.c0),
+                CurrentLine.transform.TransformPoint(b2.c0) + Vector3.up * 1.75f, Color.blue, 0.25f);
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b2.c1),
+                CurrentLine.transform.TransformPoint(b2.c1) + Vector3.up * 1.5f, Color.red, 0.25f);
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b2.c2),
+                CurrentLine.transform.TransformPoint(b2.c2) + Vector3.up * 1.25f, Color.blue, 0.25f);
+
+            Debug.DrawLine(CurrentLine.transform.TransformPoint(b1.c1),
+                CurrentLine.transform.TransformPoint(b2.c1), Color.green, 0.25f);
         }
 
         private void UpdateKnots()
         {
-            float3 knotStart = CurrentLine.OriginNode.transform.localPosition;
-            float3 knotEnd = CurrentLine.EndNode.transform.localPosition;
-            float curveLen =   ProjectedCurveLengthOnXAndZAxisOnly; //CurrentLine.Line.CurveLength;//
-            float originDist = OriginDistance * curveLen;
-            float endDist = EndDistance * curveLen;
+            float3 originPos = CurrentLine.OriginNode.transform.localPosition;
+            float3 endPos = CurrentLine.EndNode.transform.localPosition;
+            if (curve1.c0.IsCloseTo(curve2.c0))
+            {
+                CurrentLine.Line.SplineKnots = new float3[0];
+                return;
+            }
+
             switch (localMode)
             {
-
-                case LocalToolMode.StraightOriginCurve:
-                case LocalToolMode.StraightEndCurve:
-                {
-                    bool origin = localMode == LocalToolMode.StraightOriginCurve;
-                    float3 controlPoint = origin
-                        ? curve.c1
-                        : curve.c2;
-                    float3[] knots = origin
-                        ? GetPartCurveKnots(originDist, CurrentLine.OriginNode.transform.localPosition,
-                            controlPoint, knotEnd)
-                        : GetPartCurveKnots(endDist, CurrentLine.EndNode.transform.localPosition,
-                            controlPoint, knotStart, true);
-                    CurrentLine.Line.SplineKnots = new float3[knots.Length + 1];
-                    knots.CopyTo(CurrentLine.Line.SplineKnots, origin ? 0 : 1);
-                    CurrentLine.Line.SplineKnots[origin ? knots.Length : 0] = origin ? knotEnd : knotStart;
-
-                    break;
-                }
-                case LocalToolMode.StraightOriginAndEndCurves:
-                {
-                    float3[] knots1 = GetPartCurveKnots(originDist, CurrentLine.OriginNode.transform.localPosition,
-                        curve.c1, curve.c2);
-                    float3[] knots2 = GetPartCurveKnots(endDist, CurrentLine.EndNode.transform.localPosition,
-                        curve.c2, curve.c1, true);
-                    CurrentLine.Line.SplineKnots = new float3[knots1.Length + knots2.Length];
-                    knots1.CopyTo(CurrentLine.Line.SplineKnots, 0);
-                    knots2.CopyTo(CurrentLine.Line.SplineKnots, knots1.Length);
-                    break;
-                }
                 case LocalToolMode.Straight:
-                    CurrentLine.Line.SplineKnots = new float3[]
+                    CurrentLine.Line.SplineKnots = new[] { originPos, endPos };
+                    return;
+                case LocalToolMode.StraightOriginCurve:
+                {
+                    float3[] knots = GetPartCurveKnots(curve1);
+                    if (knots.Length > 0 && knots[knots.Length - 1].IsCloseTo(endPos, 0.01f))
                     {
-                        CurrentLine.OriginNode.transform.localPosition,
-                        CurrentLine.EndNode.transform.localPosition
-                    };
-                    break;
-                case LocalToolMode.Bezier:
-
-                    goto case LocalToolMode.CubicBezier;
-                case LocalToolMode.CubicBezier:
-                    int numberOfKnots = (int) math.ceil(curveLen / tool.KnotSpacing) + 2;
-
-                    float3[] splineKnots = new float3 [numberOfKnots];
-
-                    for (int i = 0; i < numberOfKnots; i++)
+                        CurrentLine.Line.SplineKnots = new float3[knots.Length];
+                    }
+                    else
                     {
-                        float t = (float) i / (numberOfKnots - 1);
-                        float3 knot = Bezier.GetVectorOnCurve(curve, t);
-                        splineKnots[i] = knot;
-                        Debug.DrawLine(CurrentLine.transform.TransformPoint(knot),
-                            CurrentLine.transform.TransformPoint(knot) + Vector3.up, Color.yellow, 0.05f);
+                        CurrentLine.Line.SplineKnots = new float3[knots.Length + 1];
+                        CurrentLine.Line.SplineKnots[knots.Length] = endPos;
                     }
 
-                    CurrentLine.Line.SplineKnots = splineKnots;
+                    knots.CopyTo(CurrentLine.Line.SplineKnots, 0);
+                    return;
+                }
+                case LocalToolMode.StraightEndCurve:
+                {
+                    float3[] knots = GetPartCurveKnots(curve1);
+                    if (knots.Length > 0 && knots[0].IsCloseTo(originPos, 0.01f))
+                    {
+                        CurrentLine.Line.SplineKnots = new float3[knots.Length];
+                        knots.CopyTo(CurrentLine.Line.SplineKnots, 0);
+                    }
+                    else
+                    {
+                        CurrentLine.Line.SplineKnots = new float3[knots.Length + 1];
+                        CurrentLine.Line.SplineKnots[0] = originPos;
+                        knots.CopyTo(CurrentLine.Line.SplineKnots, 1);
+                    }
+
+                    return;
+                }
+                case LocalToolMode.StraightOriginAndEndCurves:
+                    float3[] knots1 = GetPartCurveKnots(curve1);
+                    float3[] knots2 = GetPartCurveKnots(curve2, true);
+                    if (knots1.Length > 0 && knots2.Length > 0 && knots1[knots1.Length-1].IsCloseTo(knots2[0]))
+                    {
+                        CurrentLine.Line.SplineKnots = new float3[knots1.Length + knots2.Length - 1];
+                        knots2.CopyTo(CurrentLine.Line.SplineKnots, knots1.Length - 1);
+                        knots1.CopyTo(CurrentLine.Line.SplineKnots, 0);
+                    }
+                    else
+                    {
+                        CurrentLine.Line.SplineKnots = new float3[knots1.Length + knots2.Length];
+                        knots2.CopyTo(CurrentLine.Line.SplineKnots, knots1.Length);
+                        knots1.CopyTo(CurrentLine.Line.SplineKnots, 0);
+                    }
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                {
+                    throw new NotImplementedException();
+                }
             }
         }
 
         private float3[] GetPartCurveKnots(
-            float distance,
-            float3 originPos,
-            float3 controlPoint,
-            float3 target,
+            float3x3 bezier,
             bool invert = false)
         {
-            float3 endPos = controlPoint + math.normalize(target - controlPoint) * math.distance(controlPoint, originPos);
+            float3 originPos = bezier.c0;
+            float3 controlPoint = bezier.c1;
+            float3 endPos = bezier.c2;
 
-            float3 worldOriginPos = CurrentLine.transform.TransformPoint(originPos);
-            float3 worldControlPoint = CurrentLine.transform.TransformPoint(controlPoint);
-            float3 worldEndPos = CurrentLine.transform.TransformPoint(endPos);
-
-            Debug.DrawLine(worldOriginPos, worldOriginPos + new float3(0, 1, 0) * 2, Color.red, 0.05f);
-            Debug.DrawLine(worldControlPoint, worldControlPoint + new float3(0, 1, 0) * 2, Color.red, 0.05f);
-            Debug.DrawLine(worldEndPos, worldEndPos + new float3(0, 1, 0) * 2, Color.red, 0.05f);
+            if (controlPoint.Equals(originPos))
+            {
+                return new float3[0];
+            }
 
             float lineDistance = math.distance(originPos, controlPoint) + math.distance(controlPoint, endPos);
 
@@ -506,64 +477,6 @@ namespace Sibz.Lines
             if (CurrentLine)
             {
                 Object.Destroy(CurrentLine.gameObject);
-            }
-        }
-
-        public int projectedCurveLengthOnXAndZAxisOnlyCacheFrameCached;
-        public float? projectedCurveLengthOnXAndZAxisOnlyCache;
-        public float ProjectedCurveLengthOnXAndZAxisOnly
-        {
-            get
-            {
-                if (projectedCurveLengthOnXAndZAxisOnlyCache.HasValue
-                    && projectedCurveLengthOnXAndZAxisOnlyCacheFrameCached == Time.frameCount)
-                {
-                    return projectedCurveLengthOnXAndZAxisOnlyCache.Value;
-                }
-                projectedCurveLengthOnXAndZAxisOnlyCacheFrameCached = Time.frameCount;
-
-                float3 localCursorPosition = CurrentLine.transform.InverseTransformPoint(tool.transform.position);
-
-                localCursorPosition.y = 0;
-                float3 localOriginNodePosition = CurrentLine.OriginNode.transform.localPosition;
-
-                int len = CurrentLine.Line.SplineKnots.Length;
-                if (len < 2)
-                {
-                    return (projectedCurveLengthOnXAndZAxisOnlyCache = math.distance(localOriginNodePosition, localCursorPosition)).Value;
-                }
-                float3[] splineKnots = new float3[len];
-                CurrentLine.Line.SplineKnots.CopyTo(splineKnots, 0);
-                if (localCursorPosition.IsCloseTo(splineKnots[len-1], tool.KnotSpacing/2))
-                {
-                    return (projectedCurveLengthOnXAndZAxisOnlyCache = CurrentLine.Line.CurveLength).Value;
-                }
-
-                float distance = 0;
-                for (int i = 1; i < len; i++)
-                {
-                    splineKnots[i].y = 0;
-                    float3 knotCurrent = splineKnots[i];
-                    float3 knotPrevious = splineKnots[i-1];
-
-                    float3 currentForward = math.normalize(knotCurrent - knotPrevious);
-                    float3 cursorForward = math.normalize(localCursorPosition - knotCurrent);
-                    float ad = LineHelpers.AngleDegrees(currentForward, cursorForward);
-                    if (ad > 90f)
-                    {
-                        Debug.Log("Angle > 90");
-                        distance += math.distance(knotPrevious, localCursorPosition);
-                        break;
-                    }
-                    distance += math.distance(knotCurrent, knotPrevious);
-                    /*if (i == len - 1)
-                    {
-                        distance += math.distance(knotCurrent, localCursorPosition);
-                    }*/
-
-                }
-
-                return (projectedCurveLengthOnXAndZAxisOnlyCache = distance).Value;
             }
         }
     }
