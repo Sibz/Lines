@@ -9,6 +9,13 @@ namespace Sibz.Lines
     {
         public LineBehaviour CurrentLine;
 
+        private float ratio = 1f;
+        public float Ratio
+        {
+            get => ratio;
+            set => ratio = math.clamp(value, 0.25f, 1.75f);
+        }
+
         private const float DefaultOriginDistance = 4f;
         private const float DefaultEndDistance = 4f;
 
@@ -96,6 +103,7 @@ namespace Sibz.Lines
             CurrentLine = null;
             OriginDistance = DefaultOriginDistance;
             EndDistance = DefaultEndDistance;
+            Ratio = 1f;
         }
 
         public void SetToolMode(LineToolMode mode)
@@ -270,29 +278,33 @@ namespace Sibz.Lines
             float3x2 forwards = new float3x2(
                 CurrentLine.transform.InverseTransformDirection(originTx.forward),
                 CurrentLine.transform.InverseTransformDirection(endTx.forward));
-            ;
+
             float2 distances = new float2(
                 Distance(lineEndA, lineEndB, forwards.c0),
                 Distance(lineEndB, lineEndA, forwards.c1));
+
             float2 scales = new float2(
                 Scale(OriginDistance, distances.x, forwards.c0, lineEndA, lineEndB),
                 Scale(EndDistance, distances.y, forwards.c1, lineEndB, lineEndA));
-            ;
 
             if (originSnappedToNode && !endSnappedToNode)
             {
                 //originTx.rotation = originSnappedToNode.transform.forward;
+                distances.y = 0f;
                 b1.c1 = GetOrigin();
                 // Do Rotate
                 endTx.LookAt(CurrentLine.transform.TransformPoint(b1.c1));
-                b2.c1 = GetEnd();
+                b1.c2 = Target(b1.c1, b2.c0, distances.x, distances.y, scales.x, scales.y, ratio);
+                b2.c2 = b2.c1 = b2.c0;
             }
             else if (!originSnappedToNode && endSnappedToNode)
             {
+                distances.x = 0f;
                 b2.c1 = GetEnd();
                 // Do Rotate
                 originTx.LookAt(b2.c1);
-                b1.c1 = GetOrigin();
+                b2.c2 = Target(b2.c1, b1.c0, distances.y, distances.x, scales.y, scales.x, ratio);
+                b1.c2 = b1.c1 = b1.c0;
             }
             else
             {
@@ -304,23 +316,24 @@ namespace Sibz.Lines
 
                 b1.c1 = GetOrigin();
                 b2.c1 = GetEnd();
+                b1.c2 = Target(b1.c1, b2.c1, distances.x, distances.y, scales.x, scales.y, ratio);
+                b2.c2 = Target(b2.c1, b1.c1, distances.y, distances.x, scales.y, scales.x, ratio);
             }
 
-            b1.c2 = Target(b1.c1, b2.c1, distances.x, distances.y, scales.x, scales.y);
-            b2.c2 = Target(b2.c1, b1.c1, distances.y, distances.x, scales.y, scales.x);
+
 
             //Debug.Log(b1 + "\n" +  b2);
 
-            float3 GetOrigin() => GetControlPoint(forwards.c0, lineEndA, distances.x, scales.x);
-            float3 GetEnd() => GetControlPoint(forwards.c1, lineEndB, distances.y, scales.y);
+            float3 GetOrigin() => GetControlPoint(forwards.c0, lineEndA, distances.x, scales.x, ratio);
+            float3 GetEnd() => GetControlPoint(forwards.c1, lineEndB, distances.y, scales.y, ratio);
 
-            static float3 GetControlPoint(float3 f, float3 p1, float h, float s) => p1 + f * h * s;
+            static float3 GetControlPoint(float3 f, float3 p1, float h, float s, float r) => p1 + f * h * s * r;
 
-            static float3 Target(float3 c1, float3 c2, float h1, float h2, float s1, float s2)
+            static float3 Target(float3 c1, float3 c2, float h1, float h2, float s1, float s2, float r)
             {
                 float d = math.distance(c1, c2);
-                float ht = h1 * s1 + h2 * s2;
-                return c1 + math.normalize(c2 - c1) * (ht > d ? d * (h1 * s1 / ht) : h1 * s1);
+                float ht = h1 * s1 * (2 -r) + h2 * s2 * (2 -r);
+                return c1 + math.normalize(c2 - c1) * (ht > d ? d * (h1 * s1 * (2 -r)/ ht) : h1 * s1 * (2-r));
             }
 
             //static float Distance(float3 v, float3 f, float l)
@@ -347,7 +360,7 @@ namespace Sibz.Lines
                 float angle = AngleD(forwards, math.normalize(p2 - p1));
 
                 float b = math.abs((math.distance(p2,p1) / SinD(180 - 2 * angle)) * SinD(angle));
-                Debug.Log(angle + " : " + b);
+                //Debug.Log(angle + " : " + b);
                 /*float max1 = 2 * distances.x;
                 float c = Dist(p1, p2);
                 float b = distances.x;

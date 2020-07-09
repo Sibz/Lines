@@ -65,6 +65,16 @@ namespace Sibz.Lines
                 lineTool.AdjustDistance(LineTool.NodeType.End, Input.mouseScrollDelta.y * 0.13f);
             }
 
+            if (Input.GetKeyUp(KeyCode.Z))
+            {
+                lineTool.Ratio += 0.05f;
+            }
+
+            if (Input.GetKeyUp(KeyCode.X))
+            {
+                lineTool.Ratio -= 0.05f;
+            }
+
             if (Input.GetKeyUp(KeyCode.Tab))
             {
                 lineTool.ToggleToolMode();
