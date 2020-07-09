@@ -55,6 +55,13 @@ public class SnapToNode : MonoBehaviour
         Vector3 targetPos = default;
         Vector3 colliderPos = transform.position;
         GameObject snappedTo = null;
+        for (int i = targets.Count -1; i >=0; i--)
+        {
+            if (!targets[i])
+            {
+                targets.RemoveAt(i);
+            }
+        }
         foreach (GameObject target in targets)
         {
             Vector3 pos = target.transform.position;
