@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Unity.Mathematics;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -10,6 +10,7 @@ namespace Sibz.Lines
         public LineBehaviour CurrentLine;
 
         private float ratio1 = 1f;
+
         public float Ratio1
         {
             get => ratio1;
@@ -17,6 +18,7 @@ namespace Sibz.Lines
         }
 
         private float ratio2 = 1f;
+
         public float Ratio2
         {
             get => ratio2;
@@ -49,9 +51,7 @@ namespace Sibz.Lines
             Straight,
             StraightOriginCurve,
             StraightEndCurve,
-            StraightOriginAndEndCurves,
-            CubicBezier,
-            Bezier
+            StraightOriginAndEndCurves
         }
 
         public void ResetTool()
@@ -141,10 +141,10 @@ namespace Sibz.Lines
             switch (nodeType)
             {
                 case NodeType.Origin:
-                    OriginDistance = math.clamp(OriginDistance + adjustment, 0, CurrentLine.Line.Length);
+                    OriginDistance = math.clamp(OriginDistance + adjustment, tool.MinCurveLength, CurrentLine.Line.Length);
                     break;
                 case NodeType.End:
-                    EndDistance = math.clamp(EndDistance + adjustment, 0, CurrentLine.Line.Length);
+                    EndDistance = math.clamp(EndDistance + adjustment, tool.MinCurveLength, CurrentLine.Line.Length);
                     break;
                 default:
                     throw new NotImplementedException();
@@ -185,16 +185,19 @@ namespace Sibz.Lines
             if (CurrentLine.Line.Length < tool.MinCurvedLineLength)
             {
                 localMode = LocalToolMode.Straight;
-            } else if (endSnappedToNode && originSnappedToNode)
+            }
+            else if (endSnappedToNode && originSnappedToNode)
             {
                 localMode = LocalToolMode.StraightOriginAndEndCurves;
-            } else if (endSnappedToNode)
-            {
-                localMode = LocalToolMode.StraightOriginCurve;
-            } else if (originSnappedToNode)
-
+            }
+            else if (endSnappedToNode)
             {
                 localMode = LocalToolMode.StraightEndCurve;
+            }
+            else if (originSnappedToNode)
+
+            {
+                localMode = LocalToolMode.StraightOriginCurve;
             }
             else
             {
@@ -250,8 +253,15 @@ namespace Sibz.Lines
             {
                 if (localMode == LocalToolMode.Straight)
                 {
-                    originTx.LookAt(endTx.position);
-                    endTx.LookAt(originTx.position);
+                    if (!originSnappedToNode)
+                    {
+                        originTx.LookAt(endTx.position);
+                    }
+
+                    if (!endSnappedToNode)
+                    {
+                        endTx.LookAt(originTx.position);
+                    }
                 }
 
                 b1.c1 = GetOrigin();
@@ -271,20 +281,20 @@ namespace Sibz.Lines
             static float3 Target(float3 c1, float3 c2, float h1, float h2, float s1, float s2, float r)
             {
                 float d = Dist(c1, c2);
-                float ht = h1 * s1 * (2 -r) + h2 * s2 * (2 -r);
-                return c1 + Normalize(c2 - c1) * (ht > d ? d * (h1 * s1 * (2 -r)/ ht) : h1 * s1 * (2-r));
+                float ht = h1 * s1 * (2 - r) + h2 * s2 * (2 - r);
+                return c1 + Normalize(c2 - c1) * (ht > d ? d * (h1 * s1 * (2 - r) / ht) : h1 * s1 * (2 - r));
             }
 
             static float Distance(float3 p1, float3 p2, float3 forwards)
             {
                 float angle = AngleD(forwards, Normalize(p2 - p1));
                 angle = angle > 90 ? 90 + (angle - 90) / 2f : angle;
-                return Abs((Dist(p2,p1) / SinD(180 - 2 * angle)) * SinD(angle));;
+                return Abs((Dist(p2, p1) / SinD(180 - 2 * angle)) * SinD(angle));
             }
 
             static float Abs(float a) => math.abs(a);
             static float3 Normalize(float3 a) => math.normalize(a);
-            static float Dist(float3 a, float3 b) => math.distance(a,b);
+            static float Dist(float3 a, float3 b) => math.distance(a, b);
             static float SinD(float a) => math.sin(math.PI / 180 * a);
             static float AngleD(float3 a, float3 b) => LineHelpers.AngleDegrees(a, b);
             static float Scale(float units, float distance) => math.min(units / distance, 1);
@@ -313,20 +323,73 @@ namespace Sibz.Lines
 
         private void UpdateKnots()
         {
+            float3 originPos = CurrentLine.OriginNode.transform.localPosition;
+            float3 endPos = CurrentLine.EndNode.transform.localPosition;
             if (curve1.c0.IsCloseTo(curve2.c0))
             {
                 CurrentLine.Line.SplineKnots = new float3[0];
                 return;
             }
 
-            float3[] knots1 = GetPartCurveKnots(curve1);
-            float3[] knots2 = GetPartCurveKnots(curve2, true);
+            switch (localMode)
+            {
+                case LocalToolMode.Straight:
+                    CurrentLine.Line.SplineKnots = new[] { originPos, endPos };
+                    return;
+                case LocalToolMode.StraightOriginCurve:
+                {
+                    float3[] knots = GetPartCurveKnots(curve1);
+                    if (knots.Length > 0 && knots[knots.Length - 1].IsCloseTo(endPos, 0.01f))
+                    {
+                        CurrentLine.Line.SplineKnots = new float3[knots.Length];
+                    }
+                    else
+                    {
+                        CurrentLine.Line.SplineKnots = new float3[knots.Length + 1];
+                        CurrentLine.Line.SplineKnots[knots.Length] = endPos;
+                    }
 
-            //if (knots2.Length > 0 && knots2[0].IsCloseTo(knots1[knots1]))
+                    knots.CopyTo(CurrentLine.Line.SplineKnots, 0);
+                    return;
+                }
+                case LocalToolMode.StraightEndCurve:
+                {
+                    float3[] knots = GetPartCurveKnots(curve1);
+                    if (knots.Length > 0 && knots[0].IsCloseTo(originPos, 0.01f))
+                    {
+                        CurrentLine.Line.SplineKnots = new float3[knots.Length];
+                        knots.CopyTo(CurrentLine.Line.SplineKnots, 0);
+                    }
+                    else
+                    {
+                        CurrentLine.Line.SplineKnots = new float3[knots.Length + 1];
+                        CurrentLine.Line.SplineKnots[0] = originPos;
+                        knots.CopyTo(CurrentLine.Line.SplineKnots, 1);
+                    }
 
-            CurrentLine.Line.SplineKnots = new float3[knots1.Length + knots2.Length];
-            knots1.CopyTo(CurrentLine.Line.SplineKnots, 0);
-            knots2.CopyTo(CurrentLine.Line.SplineKnots, knots1.Length);
+                    return;
+                }
+                case LocalToolMode.StraightOriginAndEndCurves:
+                    float3[] knots1 = GetPartCurveKnots(curve1);
+                    float3[] knots2 = GetPartCurveKnots(curve2, true);
+                    if (knots1.Length > 0 && knots2.Length > 0 && knots1[knots1.Length-1].IsCloseTo(knots2[0]))
+                    {
+                        CurrentLine.Line.SplineKnots = new float3[knots1.Length + knots2.Length - 1];
+                        knots2.CopyTo(CurrentLine.Line.SplineKnots, knots1.Length - 1);
+                        knots1.CopyTo(CurrentLine.Line.SplineKnots, 0);
+                    }
+                    else
+                    {
+                        CurrentLine.Line.SplineKnots = new float3[knots1.Length + knots2.Length];
+                        knots2.CopyTo(CurrentLine.Line.SplineKnots, knots1.Length);
+                        knots1.CopyTo(CurrentLine.Line.SplineKnots, 0);
+                    }
+                    break;
+                default:
+                {
+                    throw new NotImplementedException();
+                }
+            }
         }
 
         private float3[] GetPartCurveKnots(
