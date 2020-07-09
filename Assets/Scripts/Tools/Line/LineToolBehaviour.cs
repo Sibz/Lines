@@ -67,12 +67,12 @@ namespace Sibz.Lines
 
             if (Input.GetKeyUp(KeyCode.Z))
             {
-                lineTool.Ratio += 0.05f;
+                lineTool.Ratio1 += 0.05f;
             }
 
             if (Input.GetKeyUp(KeyCode.X))
             {
-                lineTool.Ratio -= 0.05f;
+                lineTool.Ratio1 -= 0.05f;
             }
 
             if (Input.GetKeyUp(KeyCode.C))
