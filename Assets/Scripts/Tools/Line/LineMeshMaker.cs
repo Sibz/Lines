@@ -8,7 +8,10 @@ namespace Sibz.Lines
     {
         public static Mesh Build(float3 originForward, float3 endForward, float3[] knots, float width)
         {
+
             Mesh result = new Mesh();
+            if (knots.Length == 0)
+                return result;
             Vector3[] vertices = new Vector3[knots.Length * 2];
             int[] triangles = new int[(knots.Length - 1) * 6];
             Vector3[] normals = new Vector3[knots.Length * 2];

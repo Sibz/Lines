@@ -23,7 +23,7 @@ namespace Sibz.Lines
         private readonly GameObject cursor;
         private readonly LineToolBehaviour tool;
 
-        private float3x4 curve;
+        private float3x3 curve1, curve2;
 
         private readonly SnapNotifierBehaviour snapNotifier;
         private GameObject originSnappedToNode;
@@ -213,9 +213,9 @@ namespace Sibz.Lines
             MoveEndNode();
             AdjustLinePosition();
             UpdateCurve();
-            /*UpdateKnots();
-            AdjustEndNodeRotations();
-            CurrentLine.Line.RebuildMesh();*/
+            UpdateKnots();
+            /*AdjustEndNodeRotations();*/
+            CurrentLine.Line.RebuildMesh();
         }
 
         public void SetEndSnappedNode()
@@ -320,7 +320,8 @@ namespace Sibz.Lines
                 b2.c2 = Target(b2.c1, b1.c1, distances.y, distances.x, scales.y, scales.x, ratio);
             }
 
-
+            curve1 = b1;
+            curve2 = b2;
 
             //Debug.Log(b1 + "\n" +  b2);
 
@@ -331,7 +332,7 @@ namespace Sibz.Lines
 
             static float3 Target(float3 c1, float3 c2, float h1, float h2, float s1, float s2, float r)
             {
-                float d = math.distance(c1, c2);
+                float d = Dist(c1, c2);
                 float ht = h1 * s1 * (2 -r) + h2 * s2 * (2 -r);
                 return c1 + math.normalize(c2 - c1) * (ht > d ? d * (h1 * s1 * (2 -r)/ ht) : h1 * s1 * (2-r));
             }
@@ -346,7 +347,7 @@ namespace Sibz.Lines
                 float angle = AngleD(forwards, math.normalize(p2 - p1));
                 angle = angle > 90 ? 90 + (angle - 90) / 2f : angle;
 
-                float b = math.abs((math.distance(p2,p1) / SinD(180 - 2 * angle)) * SinD(angle));
+                float b = math.abs((Dist(p2,p1) / SinD(180 - 2 * angle)) * SinD(angle));
                 return b;
             }
 
@@ -402,7 +403,7 @@ namespace Sibz.Lines
                 CurrentLine.transform.TransformPoint(b2.c1), Color.green, 0.25f);
         }
 
-        private void AdjustEndNodeRotations()
+        /*private void AdjustEndNodeRotations()
         {
             int knotsLength = CurrentLine.Line.SplineKnots.Length;
             Transform endNodeTx = CurrentLine.EndNode.transform;
@@ -438,21 +439,34 @@ namespace Sibz.Lines
             float3 originPos = originTx.localPosition;
             /*float3 destPos = destTx.localPosition;
             float len = CurrentLine.Line.Length;
-            float3 direction = destPos - originPos;*/
+            float3 direction = destPos - originPos;#1#
             float3 forward = CurrentLine.transform.InverseTransformDirection(originTx.forward);
             /*float3 destForward = CurrentLine.transform.InverseTransformDirection(destTx.forward);
             /*float angle1 = LineHelpers.AngleDegrees(direction, forward);
             float mod1 = angle1 / 180 * 2 + 1;
             float angle2 = LineHelpers.AngleDegrees(destForward, forward);
-            float mod2 = angle2 / 180;#1#
-            float x = len * (distance / 2);//* (mod1 - mod2);//(math.abs(math.dot(direction, forward)) / 10);*/
+            float mod2 = angle2 / 180;#2#
+            float x = len * (distance / 2);//* (mod1 - mod2);//(math.abs(math.dot(direction, forward)) / 10);#1#
             return originPos + forward * (distance / 2);
-        }
+        }*/
 
         private void UpdateKnots()
         {
-            float3 knotStart = CurrentLine.OriginNode.transform.localPosition;
+            if (curve1.c0.IsCloseTo(curve2.c0))
+            {
+                CurrentLine.Line.SplineKnots = new float3[0];
+                return;
+            }
+            float3[] knots1 = GetPartCurveKnots(curve1);
+            float3[] knots2 = GetPartCurveKnots(curve2, true);
+            CurrentLine.Line.SplineKnots = new float3[knots1.Length + knots2.Length];
+            knots1.CopyTo(CurrentLine.Line.SplineKnots, 0);
+            knots2.CopyTo(CurrentLine.Line.SplineKnots, knots1.Length);
+
+            /*float3 knotStart = CurrentLine.OriginNode.transform.localPosition;
             float3 knotEnd = CurrentLine.EndNode.transform.localPosition;
+
+
             float curveLen = ProjectedCurveLengthOnXAndZAxisOnly; //CurrentLine.Line.CurveLength;//
             float originDist = OriginDistance * curveLen;
             float endDist = EndDistance * curveLen;
@@ -515,18 +529,21 @@ namespace Sibz.Lines
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
-            }
+            }*/
         }
 
         private float3[] GetPartCurveKnots(
-            float distance,
-            float3 originPos,
-            float3 controlPoint,
-            float3 target,
+            float3x3 bezier,
             bool invert = false)
         {
-            float3 endPos = controlPoint +
-                            math.normalize(target - controlPoint) * math.distance(controlPoint, originPos);
+            float3 originPos = bezier.c0;
+            float3 controlPoint = bezier.c1;
+            float3 endPos = bezier.c2;
+
+            if (controlPoint.Equals(originPos))
+            {
+                return new float3[0];
+            }
 
             float3 worldOriginPos = CurrentLine.transform.TransformPoint(originPos);
             float3 worldControlPoint = CurrentLine.transform.TransformPoint(controlPoint);
