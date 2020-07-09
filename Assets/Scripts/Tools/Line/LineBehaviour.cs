@@ -15,12 +15,7 @@ namespace Sibz.Lines
 
         [NonSerialized] public Line Line;
 
-        public bool CentreNodeEnabled
-        {
-            set => Line.CentreNodeEnabled = value;
-        }
-
-        private void Start()
+     private void Start()
         {
             if (!OriginNode || !EndNode || !CentreNode || !CentreNodeActivator)
             {

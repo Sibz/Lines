@@ -5,45 +5,87 @@ using UnityEngine;
 
 namespace Sibz.Lines
 {
+    public class LineSection
+    {
+        public int3 From { get; set; }
+        public int3 To { get; set; }
+        public float3x3 Bezier { get; set; }
+        public int End1Hash { get; }
+        public int End2Hash  { get; }
+        public bool IsStraight => Bezier.c1.IsCloseTo(math.lerp(Bezier.c0, Bezier.c2, 0.5f));
+
+        private readonly int hashCode;
+
+        public LineSection(float3x3 bezier, int3? from = null, int3? to = null)
+        {
+            if (bezier.Equals(float3x3.zero) || bezier.c0.Equals(float3.zero) || bezier.c2.Equals(float3.zero))
+            {
+                throw new InvalidOperationException("Cannot create section from zero based float3x3");
+            }
+
+            hashCode = bezier.GetHashCode();
+            End1Hash = bezier.c0.GetHashCode();
+            End2Hash = bezier.c2.GetHashCode();
+
+            if (from.HasValue)
+                From = from.Value;
+            if (to.HasValue)
+                To = to.Value;
+        }
+
+        public override int GetHashCode()
+        {
+            return hashCode;
+        }
+
+        public float3[] GetKnotsRelativeTo(Transform tx, int endHash, float knotSpacing = 0.25f)
+        {
+            if (End1Hash != endHash || End2Hash != endHash)
+            {
+                throw new InvalidOperationException("Hash given does not match an end");
+            }
+
+            float3x3 bezier = Bezier;
+            if (endHash != End1Hash)
+            {
+                bezier.c0 = Bezier.c2;
+                bezier.c2 = Bezier.c0;
+            }
+            if (IsStraight)
+            {
+                return new[] { Bezier.c0, Bezier.c2 };
+            }
+
+            float distanceApprox = (math.distance(Bezier.c0, Bezier.c1) + math.distance(Bezier.c2, Bezier.c1) +
+                                   math.distance(Bezier.c0, Bezier.c2)) / 2;
+            int numberOfKnots = (int) math.ceil(distanceApprox / knotSpacing);
+            float3[] knots = new float3[numberOfKnots];
+            for (int i = 0; i < numberOfKnots; i++)
+            {
+                float t = (float) i / (numberOfKnots - 1);
+                float3 worldKnot = Helpers.Bezier.GetVectorOnCurve(bezier, t);
+                knots[i] = tx.InverseTransformPoint(worldKnot);
+                Debug.DrawLine(worldKnot, worldKnot + new float3(0, 1, 0), Color.blue, 0.05f);
+            }
+
+            return knots;
+        }
+    }
     public class Line
     {
         public float Length =>
             (lineBehaviour.OriginNode.transform.localPosition - lineBehaviour.EndNode.transform.localPosition)
             .magnitude;
 
-        public float CurveLength
-        {
-            get
-            {
-                if (SplineKnots == null || SplineKnots.Length < 2)
-                    return Length;
-                float distance = 0;
-                for (int i = 1; i < SplineKnots.Length; i++)
-                {
-                    distance += math.distance(SplineKnots[i - 1], SplineKnots[i]);
-                }
-
-                return distance;
-            }
-        }
-
-        private float KnotSpacing => lineBehaviour.KnotSpacing;
-
-        public bool CentreNodeEnabled { get; set; }
 
         private readonly LineBehaviour lineBehaviour;
         private GameObject LineObject => lineBehaviour.gameObject;
-        private readonly GameObject cursor;
-
         private readonly BoxCollider centreNodeActivatorCollider;
         private readonly Collider originNodeCollider;
         private readonly Collider endNodeCollider;
         private readonly Collider centreNodeCollider;
         private readonly MeshFilter meshFilter;
-        private bool centreNodeIsNoneCentre;
-        //private GameObject originSnappedTo;
         public float3[] SplineKnots { get; set; } = new float3[0];
-
         public bool NodeCollidersEnabled
         {
             set
@@ -95,124 +137,17 @@ namespace Sibz.Lines
             }
 
             meshFilter = LineObject.GetComponent<MeshFilter>();
-            cursor = lineBehaviour.Cursor;
         }
-
-        /*
-        /*
-        public void CompleteCreation()
-        {
-            NodeCollidersEnabled = true;
-            ResizeCentreNodeActivatorCollider();
-        }
-        #1#
-
-        public void MoveEndNode(Vector3 newNodePosition, GameObject nodeToMove = null)
-        {
-            nodeToMove = nodeToMove == null ? lineBehaviour.EndNode : nodeToMove;
-
-            GameObject otherNode =
-                nodeToMove != lineBehaviour.EndNode ? lineBehaviour.EndNode : lineBehaviour.OriginNode;
-            Quaternion otherNodeWorldRotation = otherNode.transform.rotation;
-            Vector3 otherNodeWorldPosition = otherNode.transform.position;
-            Vector3 midWayPoint = Vector3.Lerp(newNodePosition, otherNodeWorldPosition, 0.5f);
-            LineObject.transform.position = midWayPoint;
-            LineObject.transform.LookAt(newNodePosition);
-
-            otherNode.transform.position = otherNodeWorldPosition;
-            otherNode.transform.rotation = otherNodeWorldRotation;
-            Debug.DrawLine(otherNodeWorldPosition, otherNodeWorldPosition + otherNode.transform.forward, Color.magenta);
-            nodeToMove.transform.position = newNodePosition;
-            nodeToMove.transform.rotation = LineObject.transform.rotation;
-
-            centreNodeIsNoneCentre = true;
-
-            //UpdateKnots();
-        }*/
-
-        /*
-        public void UpdateKnots(float3x4 curve, float knotSpacing)
-        {
-            int numberOfKnots = (int)math.ceil(Length / knotSpacing) + 2;
-            SplineKnots = new float3 [numberOfKnots];
-
-            float3 knotStart = lineBehaviour.OriginNode.transform.localPosition;
-            float3 knotEnd = lineBehaviour.EndNode.transform.localPosition;
-
-            Debug.DrawLine(lineBehaviour.transform.TransformPoint(knotStart),
-                lineBehaviour.transform.TransformPoint(knotStart) + Vector3.up, Color.cyan, 0.25f);
-            Debug.DrawLine(lineBehaviour.transform.TransformPoint(knotEnd),
-                lineBehaviour.transform.TransformPoint(knotEnd) + Vector3.up, Color.cyan, 0.25f);
-
-            for (int i = 0; i < numberOfKnots; i++)
-            {
-
-                /*float3x4 curve = new float3x4
-                {
-                    c0 = knotStart,
-                    c1 = math.lerp(knotStart, knotEnd, 0.33f) + (float3)Vector3.left,
-                    c2 = math.lerp(knotStart, knotEnd, 0.66f) + (float3)Vector3.left,
-                    c3 = knotEnd
-                };#1#
-                float3 knot = Bezier.GetVectorOnCurve(curve, (float)i/(numberOfKnots - 1));
-                SplineKnots[i] = knot;
-                Debug.DrawLine(lineBehaviour.transform.TransformPoint(knot),
-                    lineBehaviour.transform.TransformPoint(knot) + Vector3.up, Color.yellow, 0.25f);
-            }
-
-        }
-        */
-
-
 
         public void RebuildMesh()
         {
-            /*meshFilter.sharedMesh = LineMeshMaker.Build(
-                new[] { lineBehaviour.OriginNode.transform.localPosition, lineBehaviour.EndNode.transform.localPosition },
-                lineBehaviour.Width,
-                1);*/
+
             meshFilter.sharedMesh = LineMeshMaker.Build(
                  lineBehaviour.transform.InverseTransformDirection(lineBehaviour.OriginNode.transform.forward),
                  lineBehaviour.transform.InverseTransformDirection(lineBehaviour.EndNode.transform.forward),
-                // lineBehaviour.OriginNode.transform.forward,
-                // lineBehaviour.EndNode.transform.forward,
-                SplineKnots,
+                 SplineKnots,
                 lineBehaviour.Width
             );
         }
-
-        /*private void ResizeCentreNodeActivatorCollider()
-        {
-            centreNodeActivatorCollider.size =
-                new Vector3(
-                    lineBehaviour.Width,
-                    Mathf.Abs(lineBehaviour.OriginNode.transform.localPosition.y -
-                              lineBehaviour.EndNode.transform.localPosition.y),
-                    Length - lineBehaviour.CentreSnapPadding * 2);
-        }*/
-
-        /*public void UpdateCentreNodePosition()
-        {
-            if (!CentreNodeEnabled && !centreNodeIsNoneCentre)
-            {
-                return;
-            }
-
-            if (!CentreNodeEnabled)
-            {
-                lineBehaviour.CentreNode.transform.position = lineBehaviour.transform.position;
-                centreNodeIsNoneCentre = false;
-                return;
-            }
-
-            centreNodeIsNoneCentre = true;
-            Transform tx = lineBehaviour.CentreNode.transform;
-            Vector3 localPosition = tx.localPosition;
-            float len = Length / 2 - lineBehaviour.CentreSnapPadding;
-            tx.localPosition = new Vector3(
-                localPosition.x,
-                localPosition.y,
-                Mathf.Clamp(lineBehaviour.transform.InverseTransformPoint(cursor.transform.position).z, -len, len));
-        }*/
     }
 }

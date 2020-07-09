@@ -19,13 +19,13 @@ public class ActivateCentreNode : MonoBehaviour
    {
       //CentreNode.SetActive(true);
       //Debug.Log("Activated Centre Node");
-      parentLine.CentreNodeEnabled = true;
+      //parentLine.CentreNodeEnabled = true;
    }
 
    private void OnTriggerExit(Collider other)
    {
       //CentreNode.SetActive(false);
       //Debug.Log("Deactivated Centre Node");
-      parentLine.CentreNodeEnabled = false;
+      //parentLine.CentreNodeEnabled = false;
    }
 }

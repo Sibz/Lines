@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Unity.Mathematics;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -412,7 +412,7 @@ namespace Sibz.Lines
             for (int i = 0; i < numberOfKnots; i++)
             {
                 float t = (float) i / (numberOfKnots - 1);
-                knots[i] = Bezier.GetVectorOnCurve(originPos, controlPoint, endPos, invert ? 1f - t : t);
+                knots[i] = Helpers.Bezier.GetVectorOnCurve(originPos, controlPoint, endPos, invert ? 1f - t : t);
                 float3 worldKnot = CurrentLine.transform.TransformPoint(knots[i]);
                 Debug.DrawLine(worldKnot, worldKnot + new float3(0, 1, 0), Color.blue, 0.05f);
             }
@@ -420,7 +420,7 @@ namespace Sibz.Lines
             return knots;
         }
 
-        private void AdjustLinePosition()
+        private void AdjustLinePosition(bool preserveRotations = false)
         {
             // Preserve Origin and end node positions
             Transform originTx = CurrentLine.OriginNode.transform;
@@ -441,12 +441,12 @@ namespace Sibz.Lines
             endTx.position = endPos;
 
             // If origin is snapped, restore rotation
-            if (originSnappedToNode)
+            if (originSnappedToNode || preserveRotations)
             {
                 originTx.rotation = originRotation;
             }
 
-            if (endSnappedToNode)
+            if (endSnappedToNode|| preserveRotations)
             {
                 endTx.rotation = endRotation;
             }
@@ -469,7 +469,120 @@ namespace Sibz.Lines
         public void EndLine()
         {
             CurrentLine.Line.NodeCollidersEnabled = true;
+            if (originSnappedToNode)
+            {
+                MergeWith(originSnappedToNode, NodeType.Origin);
+            }
+
+            if (endSnappedToNode && !originSnappedToNode)
+            {
+                MergeWith(endSnappedToNode, NodeType.End);
+            }
+
+            if (originSnappedToNode && endSnappedToNode)
+            {
+                LineBehaviour otherLine1 = originSnappedToNode.transform.parent.GetComponent<LineBehaviour>();
+                LineBehaviour otherLine2 = endSnappedToNode.transform.parent.GetComponent<LineBehaviour>();
+                if (!otherLine1 || !otherLine2)
+                {
+                    throw new InvalidOperationException("Unable to merge as other node did not have line behaviour parent");
+                }
+
+                if (otherLine1 != otherLine2)
+                {
+                    MergeWith(endSnappedToNode, NodeType.End);
+                }
+            }
             ResetTool();
+        }
+
+        public void MergeWith(GameObject endNode, NodeType joinNode)
+        {
+            LineBehaviour otherLine = endNode.transform.parent.GetComponent<LineBehaviour>();
+            if (!otherLine)
+            {
+                throw new InvalidOperationException("Unable to get other line behaviour");
+            }
+
+            float3[] newKnots = new float3[CurrentLine.Line.SplineKnots.Length + otherLine.Line.SplineKnots.Length];
+            float3[] currentKnots = new float3[CurrentLine.Line.SplineKnots.Length];
+            float3[] otherKnots = new float3[otherLine.Line.SplineKnots.Length];
+            for (int i = 0; i < otherLine.Line.SplineKnots.Length; i++)
+            {
+                otherKnots[i] =
+                    otherLine.transform.TransformPoint(otherLine.Line.SplineKnots[i]);
+            }
+            for (int i = 0; i < CurrentLine.Line.SplineKnots.Length; i++)
+            {
+                currentKnots[i] =
+                    CurrentLine.transform.TransformPoint(CurrentLine.Line.SplineKnots[i]);
+            }
+
+            if (joinNode == NodeType.Origin && endNode == otherLine.EndNode)
+            {
+                CurrentLine.OriginNode.transform.position = otherLine.OriginNode.transform.position;
+                CurrentLine.OriginNode.transform.rotation = otherLine.OriginNode.transform.rotation;
+                AdjustLinePosition(true);
+                for (int i = 0; i < otherKnots.Length; i++)
+                {
+                    newKnots[i] =
+                        CurrentLine.transform.InverseTransformPoint(otherKnots[i]);
+                }
+                for (int i = 0; i < currentKnots.Length; i++)
+                {
+                    newKnots[otherKnots.Length + i] =
+                        CurrentLine.transform.InverseTransformPoint(currentKnots[i]);
+                }
+            } else if (joinNode == NodeType.Origin && endNode == otherLine.OriginNode)
+            {
+                CurrentLine.OriginNode.transform.position = otherLine.EndNode.transform.position;
+                CurrentLine.OriginNode.transform.rotation = otherLine.EndNode.transform.rotation;
+                AdjustLinePosition(true);
+                for (int i = otherKnots.Length -1; i >=0; i--)
+                {
+                    newKnots[i] = CurrentLine.transform.InverseTransformPoint(otherKnots[i]);
+                }
+                for (int i = 0; i < currentKnots.Length; i++)
+                {
+                    newKnots[otherKnots.Length + i] =
+                        CurrentLine.transform.InverseTransformPoint(currentKnots[i]);
+                }
+
+            } else if (joinNode == NodeType.End && endNode == otherLine.EndNode)
+            {
+                CurrentLine.EndNode.transform.position = otherLine.OriginNode.transform.position;
+                CurrentLine.EndNode.transform.rotation = otherLine.OriginNode.transform.rotation;
+                AdjustLinePosition(true);
+                for (int i = 0; i < currentKnots.Length; i++)
+                {
+                    newKnots[i] =
+                        CurrentLine.transform.InverseTransformPoint(currentKnots[i]);
+                }
+                for (int i = otherKnots.Length -1; i >=0; i--)
+                {
+                    newKnots[currentKnots.Length + i] =  CurrentLine.transform.InverseTransformPoint(otherKnots[i]);
+                }
+
+            } else if (joinNode == NodeType.End && endNode == otherLine.OriginNode)
+            {
+
+                CurrentLine.EndNode.transform.position = otherLine.EndNode.transform.position;
+                CurrentLine.EndNode.transform.rotation = otherLine.EndNode.transform.rotation;
+                AdjustLinePosition(true);
+                for (int i = 0; i < currentKnots.Length; i++)
+                {
+                    newKnots[i] =
+                        CurrentLine.transform.InverseTransformPoint(currentKnots[i]);
+                }
+                for (int i = 0; i < otherKnots.Length; i++)
+                {
+                    newKnots[currentKnots.Length + i] =
+                        CurrentLine.transform.InverseTransformPoint(otherKnots[i]);
+                }
+            }
+            CurrentLine.Line.SplineKnots = newKnots;
+            CurrentLine.Line.RebuildMesh();
+            Object.Destroy(otherLine.gameObject);
         }
 
         public void Cancel()
