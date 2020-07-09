@@ -75,6 +75,16 @@ namespace Sibz.Lines
                 lineTool.Ratio -= 0.05f;
             }
 
+            if (Input.GetKeyUp(KeyCode.C))
+            {
+                lineTool.Ratio2 += 0.05f;
+            }
+
+            if (Input.GetKeyUp(KeyCode.V))
+            {
+                lineTool.Ratio2 -= 0.05f;
+            }
+
             if (Input.GetKeyUp(KeyCode.Tab))
             {
                 lineTool.ToggleToolMode();

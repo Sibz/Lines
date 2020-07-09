@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Unity.Mathematics;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -14,6 +14,13 @@ namespace Sibz.Lines
         {
             get => ratio;
             set => ratio = math.clamp(value, 0.25f, 1.75f);
+        }
+
+        private float ratio2 = 1f;
+        public float Ratio2
+        {
+            get => ratio2;
+            set => ratio2 = math.clamp(value, 0.25f, 1.75f);
         }
 
         private const float DefaultOriginDistance = 4f;
@@ -243,7 +250,7 @@ namespace Sibz.Lines
                 b2.c1 = GetEnd();
                 // Do Rotate
                 originTx.LookAt(b2.c1);
-                b2.c2 = Target(b2.c1, b1.c0, distances.y, distances.x, scales.y, scales.x, ratio);
+                b2.c2 = Target(b2.c1, b1.c0, distances.y, distances.x, scales.y, scales.x, ratio2);
                 b1.c2 = b1.c1 = b1.c0;
             }
             else
@@ -257,14 +264,14 @@ namespace Sibz.Lines
                 b1.c1 = GetOrigin();
                 b2.c1 = GetEnd();
                 b1.c2 = Target(b1.c1, b2.c1, distances.x, distances.y, scales.x, scales.y, ratio);
-                b2.c2 = Target(b2.c1, b1.c1, distances.y, distances.x, scales.y, scales.x, ratio);
+                b2.c2 = Target(b2.c1, b1.c1, distances.y, distances.x, scales.y, scales.x, ratio2);
             }
 
             curve1 = b1;
             curve2 = b2;
 
             float3 GetOrigin() => GetControlPoint(forwards.c0, lineEndA, distances.x, scales.x, ratio);
-            float3 GetEnd() => GetControlPoint(forwards.c1, lineEndB, distances.y, scales.y, ratio);
+            float3 GetEnd() => GetControlPoint(forwards.c1, lineEndB, distances.y, scales.y, ratio2);
 
             static float3 GetControlPoint(float3 f, float3 p1, float h, float s, float r) => p1 + f * h * s * r;
 
@@ -319,6 +326,8 @@ namespace Sibz.Lines
 
             float3[] knots1 = GetPartCurveKnots(curve1);
             float3[] knots2 = GetPartCurveKnots(curve2, true);
+
+            //if (knots2.Length > 0 && knots2[0].IsCloseTo(knots1[knots1]))
 
             CurrentLine.Line.SplineKnots = new float3[knots1.Length + knots2.Length];
             knots1.CopyTo(CurrentLine.Line.SplineKnots, 0);
