@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Unity.Mathematics;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -182,31 +182,24 @@ namespace Sibz.Lines
 
         private void SetToolMode()
         {
-            bool isTooShortToCurve = CurrentLine.Line.Length < tool.MinCurvedLineLength;
-
-            LocalToolMode StraightOrCurved() =>
-                originSnappedToNode && endSnappedToNode
-                    ? LocalToolMode.StraightOriginAndEndCurves
-                    : originSnappedToNode
-                        ? LocalToolMode.StraightOriginCurve
-                        : endSnappedToNode
-                            ? LocalToolMode.StraightEndCurve
-                            : LocalToolMode.Straight;
-
-            localMode = Mode switch
+            if (CurrentLine.Line.Length < tool.MinCurvedLineLength)
             {
-                LineToolMode.CubicBezier => isTooShortToCurve
-                    ? LocalToolMode.Straight
-                    : LocalToolMode.CubicBezier,
-                // TODO If ends are more than 180' different then use Cubic
-                LineToolMode.Curve => isTooShortToCurve
-                    ? LocalToolMode.Straight
-                    : LocalToolMode.Bezier,
-                LineToolMode.Straight => isTooShortToCurve
-                    ? LocalToolMode.Straight
-                    : StraightOrCurved(),
-                var _ => throw new NotImplementedException()
-            };
+                localMode = LocalToolMode.Straight;
+            } else if (endSnappedToNode && originSnappedToNode)
+            {
+                localMode = LocalToolMode.StraightOriginAndEndCurves;
+            } else if (endSnappedToNode)
+            {
+                localMode = LocalToolMode.StraightOriginCurve;
+            } else if (originSnappedToNode)
+
+            {
+                localMode = LocalToolMode.StraightEndCurve;
+            }
+            else
+            {
+                localMode = LocalToolMode.Straight;
+            }
         }
 
         private void UpdateCurve()
