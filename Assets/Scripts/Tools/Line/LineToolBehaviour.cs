@@ -21,6 +21,8 @@ namespace Sibz.Lines
 
         private LineTool lineTool;
 
+        private bool placing;
+
         private Entity lineToolEntity;
 //        private SnapNotifierBehaviour snapNotifier;
 
@@ -57,6 +59,13 @@ namespace Sibz.Lines
             if (Input.GetMouseButton(0))
             {
                 lineTool.UpdateLine();
+
+            }
+
+            if (Time.frameCount % 10 == 0 && placing && LineDataWorld.World.EntityManager.GetComponentData<LineTool2>(lineToolEntity).State ==
+                LineTool2.ToolState.EditLine)
+            {
+                LineToolUpdateLineEvent.New(transform.position);
             }
 
             if (Input.GetMouseButtonUp(0))
@@ -66,10 +75,11 @@ namespace Sibz.Lines
                     LineTool2.ToolState.Idle)
                 {
                     LineToolCreateLineEvent.New(transform.position);
+                    placing = true;
                 }
                 else
                 {
-                    LineToolUpdateLineEvent.New(transform.position);
+                    placing = false;
                 }
             }
 
