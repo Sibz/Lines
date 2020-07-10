@@ -1,4 +1,5 @@
 ﻿using System;
+using Unity.Entities;
 using UnityEngine;
 
 namespace Sibz.Lines
@@ -19,6 +20,8 @@ namespace Sibz.Lines
         public GameObject Capsule;
 
         private LineTool lineTool;
+
+        private Entity lineToolEntity;
 //        private SnapNotifierBehaviour snapNotifier;
 
         public void OnEnable()
@@ -26,6 +29,11 @@ namespace Sibz.Lines
             if (!LineBehaviourPrefab)
             {
                 throw new NullReferenceException("Must set LinePrefab on Line1Tool!");
+            }
+
+            if (lineToolEntity.Equals(Entity.Null))
+            {
+                lineToolEntity = LineTool2.New();
             }
 
             lineTool = new LineTool(gameObject, LineBehaviourPrefab.gameObject, this);
@@ -43,6 +51,7 @@ namespace Sibz.Lines
             {
                 //lineTool.OriginSnappedToNode = snapNotifier.SnappedTo;
                 lineTool.StartLine();
+
             }
 
             if (Input.GetMouseButton(0))
@@ -53,6 +62,15 @@ namespace Sibz.Lines
             if (Input.GetMouseButtonUp(0))
             {
                 lineTool.EndLine();
+                if (LineDataWorld.World.EntityManager.GetComponentData<LineTool2>(lineToolEntity).State ==
+                    LineTool2.ToolState.Idle)
+                {
+                    LineToolCreateLineEvent.New(transform.position);
+                }
+                else
+                {
+                    LineToolUpdateLineEvent.New(transform.position);
+                }
             }
 
             if (Input.GetKey(KeyCode.LeftControl) && Input.mouseScrollDelta != Vector2.zero)
