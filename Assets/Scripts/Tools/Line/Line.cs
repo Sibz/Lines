@@ -8,6 +8,12 @@ using UnityEngine;
 
 namespace Sibz.Lines
 {
+    public struct LineComponent : IComponentData
+    {
+        public static EntityArchetype LineArchetype =
+            LineDataWorld.World.EntityManager.CreateArchetype(typeof(LineComponent));
+    }
+
     public static class LineDataWorld
     {
         private static World world;
@@ -30,6 +36,8 @@ namespace Sibz.Lines
     {
         public static EntityArchetype LineSectionArchetype =
             LineDataWorld.World.EntityManager.CreateArchetype(typeof(LineSection), typeof(LineJoinHolder));
+
+        public Entity ParentLine;
         public LineJoinDefinition From { get; set; }
         public LineJoinDefinition To { get; set; }
         public float3x3 Bezier { get; set; }
@@ -37,7 +45,7 @@ namespace Sibz.Lines
 
         private readonly int hashCode;
 
-        public LineSection(float3x3 bezier)
+        public LineSection(float3x3 bezier, Entity parentLine = default)
         {
             if (bezier.Equals(float3x3.zero) || bezier.c0.Equals(float3.zero) || bezier.c2.Equals(float3.zero))
             {
@@ -50,6 +58,7 @@ namespace Sibz.Lines
             To = default;
 
             Bezier = bezier;
+            ParentLine = parentLine;
         }
 
         public override int GetHashCode()
@@ -98,6 +107,8 @@ namespace Sibz.Lines
     }
     public class Line
     {
+        public EntityManager EntityManager => LineDataWorld.World.EntityManager;
+        public Entity LineEntity;
         public float Length =>
             (lineBehaviour.OriginNode.transform.localPosition - lineBehaviour.EndNode.transform.localPosition)
             .magnitude;
@@ -187,7 +198,12 @@ namespace Sibz.Lines
             }
 
             if (section.HasValue)
+            {
+                LineSection sect = section.Value;
+                LineEntity = EntityManager.CreateEntity(LineComponent.LineArchetype);
+                sect.ParentLine = LineEntity;
                 sections.Add(section.Value.GetHashCode(), section.Value);
+            }
 
             meshFilter = LineObject.GetComponent<MeshFilter>();
         }
