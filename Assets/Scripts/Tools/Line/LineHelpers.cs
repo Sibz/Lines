@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System.Runtime.CompilerServices;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -85,11 +85,9 @@ namespace Sibz.Lines
                 intersection = linePoint1 + (lineVec1 * s);
                 return true;
             }
-            else
-            {
-                intersection = Vector3.zero;
-                return false;
-            }
+
+            intersection = Vector3.zero;
+            return false;
         }
 
         public static SideOfLine GetSideOfLineXZ(this Vector3 direction, float3 point) =>
@@ -147,5 +145,21 @@ namespace Sibz.Lines
         {
             return other < f + precision && other > f - precision;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float3 MultiplyPoint(this float4x4 matrix, float3 point)
+        {
+            float3 result;
+            result.x = (float) (matrix.c0.x * (double) point.x + matrix.c0.y * (double) point.y + matrix.c0.z * (double) point.z) + matrix.c0.w;
+            result.y = (float) (matrix.c1.x * (double) point.x + matrix.c1.y * (double) point.y + matrix.c1.z * (double) point.z) + matrix.c0.w;
+            result.z = (float) (matrix.c2.x * (double) point.x + matrix.c2.y * (double) point.y + matrix.c2.z * (double) point.z) + matrix.c0.w;
+            float num = 1f / ((float) (matrix.c3.x * (double) point.x + matrix.c3.y * (double) point.y + matrix.c3.z * (double) point.z) + matrix.c0.w);
+            result.x *= num;
+            result.y *= num;
+            result.z *= num;
+            return result;
+        }
     }
+
+
 }
