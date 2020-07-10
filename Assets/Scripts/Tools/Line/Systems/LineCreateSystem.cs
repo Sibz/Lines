@@ -5,7 +5,7 @@ using Unity.Entities;
 namespace Sibz.Lines.Systems
 {
     [UpdateInGroup(typeof(LineSystemGroup), OrderLast = true)]
-    public class CreateLineSystem : SystemBase
+    public class LineCreateSystem : SystemBase
     {
         protected override void OnUpdate()
         {
@@ -13,6 +13,7 @@ namespace Sibz.Lines.Systems
             var lineToolEntity = GetSingletonEntity<LineTool2>();
             var ecb = new EntityCommandBuffer(Allocator.TempJob);
             var ecbConcurrent = ecb.ToConcurrent();
+            var archetype = Line2.LineArchetype;
 
             Entities.ForEach((Entity entity, int entityInQueryIndex, ref LineToolCreateLineEvent lineEvent) =>
             {
@@ -20,7 +21,7 @@ namespace Sibz.Lines.Systems
                 var data = lineTool.Data;
                 if (lineTool.State == LineTool2.ToolState.Idle)
                 {
-                    data.Entity = Line2.NewLine(ecbConcurrent,entityInQueryIndex, lineEvent.Position, out Entity initialSection);
+                    data.Entity = Line2.New(ecbConcurrent,entityInQueryIndex, lineEvent.Position, archetype, out Entity initialSection);
 
                     data.CentralSectionEntity = initialSection;
 

@@ -19,7 +19,7 @@ namespace Sibz.Lines
 
         public GameObject Capsule;
 
-        private LineTool lineTool;
+        //private LineTool lineTool;
 
         private bool placing;
 
@@ -33,18 +33,19 @@ namespace Sibz.Lines
                 throw new NullReferenceException("Must set LinePrefab on Line1Tool!");
             }
 
-            if (lineToolEntity.Equals(Entity.Null))
+            if (!LineDataWorld.World.EntityManager.Exists(lineToolEntity))
             {
                 lineToolEntity = LineTool2.New();
             }
 
-            lineTool = new LineTool(gameObject, LineBehaviourPrefab.gameObject, this);
+            //lineTool = new LineTool(gameObject, LineBehaviourPrefab.gameObject, this);
             //snapNotifier = GetComponent<SnapNotifierBehaviour>();
         }
 
         public void OnDisable()
         {
-            lineTool.Cancel();
+            //lineTool.Cancel();
+            placing = false;
         }
 
         public void Update()
@@ -52,13 +53,13 @@ namespace Sibz.Lines
             if (Input.GetMouseButtonDown(0))
             {
                 //lineTool.OriginSnappedToNode = snapNotifier.SnappedTo;
-                lineTool.StartLine();
+                //lineTool.StartLine();
 
             }
 
             if (Input.GetMouseButton(0))
             {
-                lineTool.UpdateLine();
+                //lineTool.UpdateLine();
 
             }
 
@@ -70,7 +71,7 @@ namespace Sibz.Lines
 
             if (Input.GetMouseButtonUp(0))
             {
-                lineTool.EndLine();
+                //lineTool.EndLine();
                 if (LineDataWorld.World.EntityManager.GetComponentData<LineTool2>(lineToolEntity).State ==
                     LineTool2.ToolState.Idle)
                 {
@@ -85,37 +86,37 @@ namespace Sibz.Lines
 
             if (Input.GetKey(KeyCode.LeftControl) && Input.mouseScrollDelta != Vector2.zero)
             {
-                lineTool.AdjustDistance(LineTool.NodeType.Origin, Input.mouseScrollDelta.y * 0.13f);
+               // lineTool.AdjustDistance(LineTool.NodeType.Origin, Input.mouseScrollDelta.y * 0.13f);
             }
 
             if (Input.GetKey(KeyCode.LeftAlt) && Input.mouseScrollDelta != Vector2.zero)
             {
-                lineTool.AdjustDistance(LineTool.NodeType.End, Input.mouseScrollDelta.y * 0.13f);
+               // lineTool.AdjustDistance(LineTool.NodeType.End, Input.mouseScrollDelta.y * 0.13f);
             }
 
             if (Input.GetKeyUp(KeyCode.Z))
             {
-                lineTool.Ratio1 += 0.05f;
+               // lineTool.Ratio1 += 0.05f;
             }
 
             if (Input.GetKeyUp(KeyCode.X))
             {
-                lineTool.Ratio1 -= 0.05f;
+               // lineTool.Ratio1 -= 0.05f;
             }
 
             if (Input.GetKeyUp(KeyCode.C))
             {
-                lineTool.Ratio2 += 0.05f;
+               // lineTool.Ratio2 += 0.05f;
             }
 
             if (Input.GetKeyUp(KeyCode.V))
             {
-                lineTool.Ratio2 -= 0.05f;
+                //lineTool.Ratio2 -= 0.05f;
             }
 
             if (Input.GetKeyUp(KeyCode.Tab))
             {
-                lineTool.ToggleToolMode();
+                //lineTool.ToggleToolMode();
             }
         }
     }

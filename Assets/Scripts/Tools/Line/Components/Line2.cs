@@ -7,8 +7,12 @@ namespace Sibz.Lines
 
     public struct Line2 : IComponentData
     {
-        /*public static EntityArchetype LineArchetype =
-            LineDataWorld.World.EntityManager.CreateArchetype(typeof(Line2));*/
+        public static EntityArchetype LineArchetype =
+            LineDataWorld.World.EntityManager.CreateArchetype(
+                typeof(Line2),
+                typeof(LineKnotData),
+                typeof(LineMeshTriangleData),
+                typeof(LineMeshVertexData));
 
         public float3 Position;
 
@@ -17,9 +21,9 @@ namespace Sibz.Lines
             Position = position;
         }
 
-        public static Entity NewLine(EntityCommandBuffer.Concurrent em, int jobIndex, float3 position, out Entity initialSection)
+        public static Entity New(EntityCommandBuffer.Concurrent em, int jobIndex, float3 position, EntityArchetype archetype, out Entity initialSection)
         {
-            Entity entity = em.CreateEntity(jobIndex);
+            Entity entity = em.CreateEntity(jobIndex, archetype);
             em.AddComponent(jobIndex, entity, new Line2(position));
             initialSection = LineSection.NewLineSection(em, jobIndex, entity, position);
             return entity;
