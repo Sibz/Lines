@@ -101,10 +101,16 @@ namespace Sibz.Lines
 
                 var bezierData = GetBezierData(originIndex, endIndex);
 
+                CreateOrUpdateSection(ref lineTool, toolOriginIndex, bezierData.Origin,
+                    out DynamicBuffer<LineJoinPoint> originJoinPoints);
                 CreateOrUpdateSection(ref lineTool, toolCentreIndex, bezierData.Centre,
                     out DynamicBuffer<LineJoinPoint> centreJoinPoints);
+                CreateOrUpdateSection(ref lineTool, toolEndIndex, bezierData.End,
+                    out DynamicBuffer<LineJoinPoint> endJoinPoints);
 
+                UpdateJoinPoints(originJoinPoints, bezierData.Origin);
                 UpdateJoinPoints(centreJoinPoints, bezierData.Centre);
+                UpdateJoinPoints(endJoinPoints, bezierData.End);
             }
 
             private void CreateOrUpdateSection(ref LineTool2 lineTool, int index, float3x3 bezier,
