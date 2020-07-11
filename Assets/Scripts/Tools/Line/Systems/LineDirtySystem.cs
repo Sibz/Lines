@@ -105,6 +105,9 @@ namespace Sibz.Lines.Tools.Systems
 
                 Line2.GetSectionsForLine(LineEntity, SectionsByEntity, out sections);
 
+                if (sections.Length == 0)
+                    return;
+
                 GetEndJoinPoints(out LineJoinPoint a, out LineJoinPoint b);
                 if (!a.Equals(default))
                 {
@@ -187,6 +190,9 @@ namespace Sibz.Lines.Tools.Systems
                 line = lineComponent;
 
                 Line2.GetSectionsForLine(LineEntity, SectionsByEntity, out sections, out sectionsEntities);
+
+                if (sections.Length == 0)
+                    return;
 
                 UpdateKnotData();
 
