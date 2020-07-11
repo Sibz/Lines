@@ -47,6 +47,7 @@ namespace Sibz.Lines.Tools.Systems
                     {
                         new OnDirtyLineJob
                         {
+                            // ReSharper disable once AccessToDisposedClosure
                             SectionsByEntity = sectionsByEntity,
                             LineEntity = lineEntity,
                             KnotBuffer = knotBuffers[lineEntity],
