@@ -68,7 +68,8 @@ namespace Sibz.Lines.Tools.Systems
                             SectionsByEntity = sectionsByEntity,
                             JoinPoints = joinBuffer,
                             LineEntity = lineEntity,
-                            EntityManager = EntityManager
+                            EntityManager = EntityManager,
+                            LineTool = GetSingleton<LineTool2>()
                         }.Execute();
                     }).WithoutBurst().Run();
             }
@@ -82,19 +83,28 @@ namespace Sibz.Lines.Tools.Systems
             [ReadOnly] public BufferFromEntity<LineJoinPoint> JoinPoints;
 
             public Entity LineEntity;
+            public LineTool2 LineTool;
 
             public EntityManager EntityManager;
             private GameObject line;
 
             private LineBehaviour lineBehaviour;
             private NativeList<Line2.SectionData> sections;
-            private NativeArray<Entity> sectionsEntities;
 
             public void Execute()
             {
                 line = EntityManager.GetComponentObject<GameObject>(LineEntity);
                 lineBehaviour = line.GetComponent<LineBehaviour>();
-                Line2.GetSectionsForLine(LineEntity, SectionsByEntity, out sections, out sectionsEntities);
+
+                if (!LineTool.Data.Entity.Equals(LineEntity))
+                {
+                    lineBehaviour.OriginNode.SetActive(false);
+                    lineBehaviour.EndNode.SetActive(false);
+                    return;
+                }
+
+                Line2.GetSectionsForLine(LineEntity, SectionsByEntity, out sections);
+
                 GetEndJoinPoints(out LineJoinPoint a, out LineJoinPoint b);
                 if (!a.Equals(default))
                 {
@@ -122,8 +132,11 @@ namespace Sibz.Lines.Tools.Systems
 
             public void GetEndJoinPoints(out LineJoinPoint a, out LineJoinPoint b)
             {
+
                 a = default;
                 b = default;
+
+
                 int len = sections.Length;
                 for (int i = 0; i < len; i++)
                 {

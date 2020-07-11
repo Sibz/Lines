@@ -31,18 +31,26 @@ namespace Sibz.Lines
 
         public static void GetSectionsForLine(
             Entity lineEntity, NativeMultiHashMap<Entity, SectionData> sectionsByEntity,
+            out NativeList<SectionData> sections)
+        {
+            sections = new NativeList<SectionData>(Allocator.Temp);
+            if (!sectionsByEntity.TryGetFirstValue(lineEntity, out SectionData item,
+                out NativeMultiHashMapIterator<Entity> it))
+            {
+                return;
+            }
+
+            do
+            {
+                sections.Add(item);
+            } while (sectionsByEntity.TryGetNextValue(out item, ref it));
+        }
+        public static void GetSectionsForLine(
+            Entity lineEntity, NativeMultiHashMap<Entity, SectionData> sectionsByEntity,
             out NativeList<SectionData> sections,
             out NativeArray<Entity> sectionsEntities)
         {
-            sections = new NativeList<SectionData>(Allocator.Temp);
-            if (sectionsByEntity.TryGetFirstValue(lineEntity, out SectionData item,
-                out NativeMultiHashMapIterator<Entity> it))
-            {
-                do
-                {
-                    sections.Add(item);
-                } while (sectionsByEntity.TryGetNextValue(out item, ref it));
-            }
+            GetSectionsForLine(lineEntity, sectionsByEntity, out sections);
 
             sectionsEntities = new NativeArray<Entity>(sections.Length, Allocator.Temp);
             int len = sections.Length;
