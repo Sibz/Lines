@@ -25,7 +25,10 @@ namespace Sibz.Lines.ECS.Systems
                 {
                     if (lineTool.State == LineToolState.Idle)
                     {
-                        
+                        lineTool.Data.LineEntity = Line.New(newLineEvent.StartingPosition, prefab);
+                        lineTool.Data.FromJoinPointEntity = newLineEvent.FromJoinPointEntity;
+                        lineTool.State = LineToolState.New;
+                        SetSingleton(lineTool);
                     }
                     EntityManager.DestroyEntity(eventEntity);
                 }).WithoutBurst().Run();
