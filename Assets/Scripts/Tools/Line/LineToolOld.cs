@@ -5,7 +5,7 @@ using Object = UnityEngine.Object;
 
 namespace Sibz.Lines
 {
-    public class LineTool
+    public class LineToolOld
     {
         public LineBehaviour CurrentLine;
 
@@ -98,7 +98,7 @@ namespace Sibz.Lines
             });
         }
 
-        public LineTool(GameObject cursor, GameObject linePrefab, LineToolBehaviour tool)
+        public LineToolOld(GameObject cursor, GameObject linePrefab, LineToolBehaviour tool)
         {
             this.linePrefab = linePrefab == null
                 ? throw new System.ArgumentNullException(nameof(linePrefab))
