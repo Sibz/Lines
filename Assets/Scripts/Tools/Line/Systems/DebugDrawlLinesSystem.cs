@@ -1,10 +1,12 @@
-﻿using Unity.Collections;
+﻿using Sibz.Lines.Systems;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using UnityEngine;
 
 namespace Sibz.Lines.Tools.Systems
 {
+    [UpdateInGroup(typeof(LineSystemGroup), OrderLast = true)]
     public class DebugDrawlLinesSystem : SystemBase
     {
         private EntityQuery sectionsQuery;
