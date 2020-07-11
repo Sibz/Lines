@@ -25,9 +25,11 @@ namespace Sibz.Lines.Systems
             for (int i = 0; i < entities.Length; i++)
             {
                 EntityManager.RemoveComponent<NewLine>(entities[i]);
+                GameObject line = Object.Instantiate(prefab, lines[i].Position, Quaternion.identity);
                 EntityManager.AddComponentObject(
                     entities[i],
-                    Object.Instantiate(prefab, lines[i].Position, Quaternion.identity));
+                    line);
+                line.GetComponent<LineBehaviour>().Line.NodeCollidersEnabled = false;
                 //EntityManager.GetComponentObject<GameObject>(entities[i]);
             }
 

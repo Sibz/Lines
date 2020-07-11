@@ -9,5 +9,14 @@ namespace Sibz.Lines
         public float3 Position;
         public LineJoinData JoinData;
         public bool IsJoined => JoinData.IsConnected;
+
+        public bool Equals(LineJoinPoint other)
+        {
+            return
+                Direction.Equals(other.Direction) &&
+                Position.Equals(other.Position) &&
+                JoinData.ConnectedEntity.Equals(other.JoinData.ConnectedEntity) &&
+                JoinData.ConnectedIndex.Equals(other.JoinData.ConnectedIndex);
+        }
     }
 }

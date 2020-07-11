@@ -28,5 +28,34 @@ namespace Sibz.Lines
             initialSection = LineSection.NewLineSection(em, jobIndex, entity, position);
             return entity;
         }
+
+        public static void GetSectionsForLine(
+            Entity lineEntity, NativeMultiHashMap<Entity, SectionData> sectionsByEntity,
+            out NativeList<SectionData> sections,
+            out NativeArray<Entity> sectionsEntities)
+        {
+            sections = new NativeList<SectionData>(Allocator.Temp);
+            if (sectionsByEntity.TryGetFirstValue(lineEntity, out SectionData item,
+                out NativeMultiHashMapIterator<Entity> it))
+            {
+                do
+                {
+                    sections.Add(item);
+                } while (sectionsByEntity.TryGetNextValue(out item, ref it));
+            }
+
+            sectionsEntities = new NativeArray<Entity>(sections.Length, Allocator.Temp);
+            int len = sections.Length;
+            for (int i = 0; i < len; i++)
+            {
+                sectionsEntities[i] = sections[i].Entity;
+            }
+        }
+
+        public struct SectionData
+        {
+            public Entity Entity;
+            public LineSection Section;
+        }
     }
 }

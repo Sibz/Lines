@@ -2,6 +2,7 @@
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
+using UnityEngine;
 
 namespace Sibz.Lines.Tools.Systems
 {
@@ -23,8 +24,8 @@ namespace Sibz.Lines.Tools.Systems
             NativeArray<LineSection> sections =
                 lineSectionsQuery.ToComponentDataArrayAsync<LineSection>(Allocator.TempJob, out JobHandle jh2);
 
-            using (NativeMultiHashMap<Entity, SectionData> sectionsByEntity =
-                new NativeMultiHashMap<Entity, SectionData>(lineSectionsQuery.CalculateEntityCount(),
+            using (NativeMultiHashMap<Entity, Line2.SectionData> sectionsByEntity =
+                new NativeMultiHashMap<Entity, Line2.SectionData>(lineSectionsQuery.CalculateEntityCount(),
                     Allocator.TempJob))
             {
                 var joinBuffer = GetBufferFromEntity<LineJoinPoint>(true);
@@ -36,7 +37,8 @@ namespace Sibz.Lines.Tools.Systems
                         Components = sections,
                         Entities = sectionEntities,
                         ComponentsByEntity = sectionsByEntity.AsParallelWriter()
-                    }.Schedule(lineSectionsQuery.CalculateEntityCount(), JobHandle.CombineDependencies(Dependency, jh1, jh2)));
+                    }.Schedule(lineSectionsQuery.CalculateEntityCount(),
+                        JobHandle.CombineDependencies(Dependency, jh1, jh2)));
 
                 BufferFromEntity<LineKnotData> knotBuffers = GetBufferFromEntity<LineKnotData>();
 
@@ -55,14 +57,107 @@ namespace Sibz.Lines.Tools.Systems
                             JoinPoints = joinBuffer
                         }.Execute(ref line);
                     }).Schedule(Dependency).Complete();
+
+                Entities
+                    .WithAll<Dirty, Line2>()
+                    .ForEach((Entity lineEntity) =>
+                    {
+                        new UpdateNodesJob
+                        {
+                            // ReSharper disable once AccessToDisposedClosure
+                            SectionsByEntity = sectionsByEntity,
+                            JoinPoints = joinBuffer,
+                            LineEntity = lineEntity,
+                            EntityManager = EntityManager
+                        }.Execute();
+                    }).WithoutBurst().Run();
             }
 
             EntityManager.RemoveComponent<Dirty>(lineQuery);
         }
 
+        private struct UpdateNodesJob
+        {
+            [ReadOnly] public NativeMultiHashMap<Entity, Line2.SectionData> SectionsByEntity;
+            [ReadOnly] public BufferFromEntity<LineJoinPoint> JoinPoints;
+
+            public Entity LineEntity;
+
+            public EntityManager EntityManager;
+            private GameObject line;
+
+            private LineBehaviour lineBehaviour;
+            private NativeList<Line2.SectionData> sections;
+            private NativeArray<Entity> sectionsEntities;
+
+            public void Execute()
+            {
+                line = EntityManager.GetComponentObject<GameObject>(LineEntity);
+                lineBehaviour = line.GetComponent<LineBehaviour>();
+                Line2.GetSectionsForLine(LineEntity, SectionsByEntity, out sections, out sectionsEntities);
+                GetEndJoinPoints(out LineJoinPoint a, out LineJoinPoint b);
+                if (!a.Equals(default))
+                {
+                    lineBehaviour.OriginNode.SetActive(true);
+                    lineBehaviour.OriginNode.transform.position = a.Position;
+                    lineBehaviour.OriginNode.transform.rotation = Quaternion.LookRotation(
+                        line.transform.InverseTransformDirection(a.Direction));
+                }
+                else
+                {
+                    lineBehaviour.OriginNode.SetActive(false);
+                }
+                if (!b.Equals(default))
+                {
+                    lineBehaviour.EndNode.SetActive(true);
+                    lineBehaviour.EndNode.transform.position = b.Position;
+                    lineBehaviour.EndNode.transform.rotation = Quaternion.LookRotation(
+                        line.transform.InverseTransformDirection(b.Direction));
+                }
+                else
+                {
+                    lineBehaviour.EndNode.SetActive(false);
+                }
+            }
+
+            public void GetEndJoinPoints(out LineJoinPoint a, out LineJoinPoint b)
+            {
+                a = default;
+                b = default;
+                int len = sections.Length;
+                for (int i = 0; i < len; i++)
+                {
+                    var section = sections[i];
+                    if (a.Equals(default) && b.Equals(default))
+                    {
+                        if (!JoinPoints[section.Entity][0].IsJoined)
+                        {
+                            a = JoinPoints[section.Entity][0];
+                        }
+                        else if (!JoinPoints[section.Entity][1].IsJoined)
+                        {
+                            a = JoinPoints[section.Entity][1];
+                        }
+                    }
+
+                    if (b.Equals(default))
+                    {
+                        if (!JoinPoints[section.Entity][0].IsJoined && !JoinPoints[section.Entity][0].Equals(a))
+                        {
+                            b = JoinPoints[section.Entity][0];
+                        }
+                        else if (!JoinPoints[section.Entity][1].IsJoined && !JoinPoints[section.Entity][1].Equals(a))
+                        {
+                            b = JoinPoints[section.Entity][1];
+                        }
+                    }
+                }
+            }
+        }
+
         private struct OnDirtyLineJob
         {
-            [ReadOnly] public NativeMultiHashMap<Entity, SectionData> SectionsByEntity;
+            [ReadOnly] public NativeMultiHashMap<Entity, Line2.SectionData> SectionsByEntity;
             [ReadOnly] public BufferFromEntity<LineJoinPoint> JoinPoints;
 
             public Entity LineEntity;
@@ -71,15 +166,14 @@ namespace Sibz.Lines.Tools.Systems
 
             private Line2 line;
 
-            private NativeList<SectionData> sections;
+            private NativeList<Line2.SectionData> sections;
             private NativeArray<Entity> sectionsEntities;
-
 
             public void Execute(ref Line2 lineComponent)
             {
                 line = lineComponent;
 
-                GetSectionsForThisLine();
+                Line2.GetSectionsForLine(LineEntity, SectionsByEntity, out sections, out sectionsEntities);
 
                 UpdateKnotData();
 
@@ -90,14 +184,14 @@ namespace Sibz.Lines.Tools.Systems
             {
                 KnotBuffer.Clear();
 
-                GetFirstSection(out SectionData section, out int index);
+                GetFirstSection(out Line2.SectionData section, out int index);
                 Entity first = section.Entity;
                 do
                 {
                     GetKnots(ref section, index);
                 } while (TryGetNextSection(ref section, ref index) && !section.Entity.Equals(first));
 
-                if (section.Entity.Equals(first) && KnotBuffer.Length>0)
+                if (section.Entity.Equals(first) && KnotBuffer.Length > 0)
                 {
                     var knot = KnotBuffer[KnotBuffer.Length - 1];
                     knot.Flags &= KnotFlags.End;
@@ -105,7 +199,7 @@ namespace Sibz.Lines.Tools.Systems
                 }
             }
 
-            private void GetKnots(ref SectionData section, int index)
+            private void GetKnots(ref Line2.SectionData section, int index)
             {
                 float3x3 bezier = section.Section.Bezier;
                 if (index == 1)
@@ -131,7 +225,7 @@ namespace Sibz.Lines.Tools.Systems
                 }
             }
 
-            private bool TryGetNextSection(ref SectionData section, ref int joinIndex)
+            private bool TryGetNextSection(ref Line2.SectionData section, ref int joinIndex)
             {
                 int otherIndex = math.abs(joinIndex - 1);
                 if (!JoinPoints[section.Entity][otherIndex].IsJoined
@@ -145,7 +239,7 @@ namespace Sibz.Lines.Tools.Systems
                 return true;
             }
 
-            private void GetFirstSection(out SectionData section, out int joinIndex)
+            private void GetFirstSection(out Line2.SectionData section, out int joinIndex)
             {
                 if (!TryGetFirstNonJoinedSection(out section))
                 {
@@ -164,7 +258,7 @@ namespace Sibz.Lines.Tools.Systems
                             : 1;
             }
 
-            private bool TryGetFirstNonJoinedSection(out SectionData data)
+            private bool TryGetFirstNonJoinedSection(out Line2.SectionData data)
             {
                 int len = sections.Length;
                 for (int i = 0; i < len; i++)
@@ -186,54 +280,30 @@ namespace Sibz.Lines.Tools.Systems
                 return false;
             }
 
-            private void GetSectionsForThisLine()
-            {
-                sections = new NativeList<SectionData>(Allocator.Temp);
-                if (SectionsByEntity.TryGetFirstValue(LineEntity, out SectionData item,
-                    out NativeMultiHashMapIterator<Entity> it))
-                {
-                    do
-                    {
-                        sections.Add(item);
-                    } while (SectionsByEntity.TryGetNextValue(out item, ref it));
-                }
-
-                sectionsEntities = new NativeArray<Entity>(sections.Length, Allocator.Temp);
-                int len = sections.Length;
-                for (int i = 0; i < len; i++)
-                {
-                    sectionsEntities[i] = sections[i].Entity;
-                }
-            }
 
             private int GetSectionIndex(Entity entity)
             {
                 return sectionsEntities.IndexOf<Entity>(entity);
             }
 
-            private SectionData GetSectionData(Entity entity)
+            private Line2.SectionData GetSectionData(Entity entity)
             {
                 return sections[GetSectionIndex(entity)];
             }
         }
 
-        private struct SectionData
-        {
-            public Entity Entity;
-            public LineSection Section;
-        }
 
         private struct BuildHashMapJob : IJobFor
         {
             [ReadOnly] [DeallocateOnJobCompletion] public NativeArray<Entity> Entities;
             [ReadOnly] [DeallocateOnJobCompletion] public NativeArray<LineSection> Components;
-            public NativeMultiHashMap<Entity, SectionData>.ParallelWriter ComponentsByEntity;
+            public NativeMultiHashMap<Entity, Line2.SectionData>.ParallelWriter ComponentsByEntity;
 
             public void Execute(int index)
             {
                 ComponentsByEntity.Add(
                     Components[index].ParentLine,
-                    new SectionData
+                    new Line2.SectionData
                     {
                         Section = Components[index],
                         Entity = Entities[index]
