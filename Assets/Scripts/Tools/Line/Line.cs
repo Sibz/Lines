@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Sibz.Lines
+namespace Sibz.Lines.Mono
 {
     public class Line
     {
