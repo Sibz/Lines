@@ -9,11 +9,11 @@ namespace Sibz.Lines.Systems
     {
         protected override void OnUpdate()
         {
-            var lineTool = GetSingleton<LineTool2>();
-            var lineToolEntity = GetSingletonEntity<LineTool2>();
-            var ecb = new EntityCommandBuffer(Allocator.TempJob);
-            var ecbConcurrent = ecb.ToConcurrent();
-            var archetype = Line2.LineArchetype;
+            LineTool2 lineTool = GetSingleton<LineTool2>();
+            Entity lineToolEntity = GetSingletonEntity<LineTool2>();
+            EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.TempJob);
+            EntityCommandBuffer.Concurrent ecbConcurrent = ecb.ToConcurrent();
+            EntityArchetype archetype = Line2.LineArchetype;
 
             Entities.ForEach((Entity entity, int entityInQueryIndex, ref LineToolCreateLineEvent lineEvent) =>
             {

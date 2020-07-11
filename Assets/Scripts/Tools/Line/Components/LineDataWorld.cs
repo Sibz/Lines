@@ -16,6 +16,7 @@ namespace Sibz.Lines
                 var group = world.CreateSystem<LineSystemGroup>();
                 group.AddSystemToUpdateList(world.CreateSystem<LineCreateSystem>());
                 group.AddSystemToUpdateList(world.CreateSystem<LineUpdateSystem>());
+                group.AddSystemToUpdateList(world.CreateSystem<NewLineSystem>());
                 return world;
             }
         }

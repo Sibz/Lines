@@ -4,7 +4,6 @@ using Unity.Mathematics;
 
 namespace Sibz.Lines
 {
-
     public struct Line2 : IComponentData
     {
         public static EntityArchetype LineArchetype =
@@ -12,7 +11,8 @@ namespace Sibz.Lines
                 typeof(Line2),
                 typeof(LineKnotData),
                 typeof(LineMeshTriangleData),
-                typeof(LineMeshVertexData));
+                typeof(LineMeshVertexData),
+                typeof(NewLine));
 
         public float3 Position;
 
