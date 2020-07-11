@@ -7,7 +7,7 @@ namespace Sibz.Lines
     {
         public float3 Direction;
         public float3 Position;
-        public int ConnectedIndex;
-        public Entity ConnectedEntity;
+        public LineJoinData JoinData;
+        public bool IsJoined => JoinData.IsConnected;
     }
 }

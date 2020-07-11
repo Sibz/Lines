@@ -131,10 +131,10 @@ namespace Sibz.Lines
                 float3 originPos = LineSections[originIndex].Bezier.c0;
                 float3 endPos = LineSections[endIndex].Bezier.c2;
 
-                bool originIsJoined = !LineJoinPointBuffer[LineSectionEntities[originIndex]][0]
-                    .ConnectedEntity.Equals(Entity.Null);
-                bool endIsJoined = !LineJoinPointBuffer[LineSectionEntities[endIndex]][1]
-                    .ConnectedEntity.Equals(Entity.Null);
+                bool originIsJoined = LineJoinPointBuffer[LineSectionEntities[originIndex]][0]
+                    .IsJoined;
+                bool endIsJoined = LineJoinPointBuffer[LineSectionEntities[endIndex]][1]
+                    .IsJoined;
 
                 // Straight line
                 if (!originIsJoined && !endIsJoined)
