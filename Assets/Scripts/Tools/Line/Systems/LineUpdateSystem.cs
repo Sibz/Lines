@@ -25,7 +25,8 @@ namespace Sibz.Lines
             EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.TempJob);
             EntityCommandBuffer.Concurrent ecbConcurrent = ecb.ToConcurrent();
 
-            NativeArray<Entity> lineSectionEntities = sectionsQuery.ToEntityArrayAsync(Allocator.TempJob, out JobHandle jh);
+            NativeArray<Entity> lineSectionEntities =
+                sectionsQuery.ToEntityArrayAsync(Allocator.TempJob, out JobHandle jh);
             NativeArray<LineSection> lineSections =
                 sectionsQuery.ToComponentDataArrayAsync<LineSection>(Allocator.TempJob, out JobHandle jh2);
 
@@ -101,34 +102,177 @@ namespace Sibz.Lines
 
                 var bezierData = GetBezierData(originIndex, endIndex);
 
-                CreateOrUpdateSection(ref lineTool, toolOriginIndex, bezierData.Origin,
-                    out DynamicBuffer<LineJoinPoint> originJoinPoints);
-                CreateOrUpdateSection(ref lineTool, toolCentreIndex, bezierData.Centre,
-                    out DynamicBuffer<LineJoinPoint> centreJoinPoints);
-                CreateOrUpdateSection(ref lineTool, toolEndIndex, bezierData.End,
-                    out DynamicBuffer<LineJoinPoint> endJoinPoints);
+                var originJoin = LineJoinPointBuffer[LineSectionEntities[originIndex]][0];
+                var endJoin = LineJoinPointBuffer[LineSectionEntities[endIndex]][1];
 
-                UpdateJoinPoints(originJoinPoints, bezierData.Origin);
-                UpdateJoinPoints(centreJoinPoints, bezierData.Centre);
-                UpdateJoinPoints(endJoinPoints, bezierData.End);
+                bool haveOriginSection, haveCentreSection, haveEndSection;
+                if (!(haveOriginSection = TryCreateOrUpdateSection(ref lineTool, toolOriginIndex, bezierData.Origin,
+                        ref lineTool.Data.OriginSectionEntity,
+                        out DynamicBuffer<LineJoinPoint> originJoinPoints))
+                    && !lineTool.Data.OriginSectionEntity.Equals(Entity.Null))
+                {
+                    Ecb.DestroyEntity(JobIndex, lineTool.Data.OriginSectionEntity);
+                }
+
+                if (!(haveEndSection = TryCreateOrUpdateSection(ref lineTool, toolEndIndex, bezierData.End,
+                        ref lineTool.Data.EndSectionEntity,
+                        out DynamicBuffer<LineJoinPoint> endJoinPoints))
+                    && !lineTool.Data.EndSectionEntity.Equals(Entity.Null))
+                {
+                    Ecb.DestroyEntity(JobIndex, lineTool.Data.EndSectionEntity);
+                }
+
+                if (!(haveCentreSection = TryCreateOrUpdateSection(ref lineTool, toolCentreIndex, bezierData.Centre,
+                        ref lineTool.Data.CentralSectionEntity,
+                        out DynamicBuffer<LineJoinPoint> centreJoinPoints))
+                    &&  (haveEndSection || haveOriginSection)
+                    && !lineTool.Data.CentralSectionEntity.Equals(Entity.Null))
+                {
+                    Debug.Log("Destroying Central Entity");
+                    Ecb.DestroyEntity(JobIndex, lineTool.Data.CentralSectionEntity);
+                }
+
+                if (haveOriginSection)
+                {
+                    UpdateJoinPoints(originJoinPoints, bezierData.Origin);
+
+                    if (LineJoinPointBuffer.Exists(originJoin.JoinData.ConnectedEntity))
+                    {
+                        LineJoinPoint.Join(
+                            LineJoinPointBuffer[originJoin.JoinData.ConnectedEntity],
+                            originJoinPoints,
+                            new LineJoinPoint.NewJoinInfo
+                            {
+                                FromIndex = originJoin.JoinData.ConnectedIndex,
+                                FromSection = originJoin.JoinData.ConnectedEntity,
+                                ToIndex = 0,
+                                ToSection = lineTool.Data.OriginSectionEntity
+                            });
+                    }
+
+                    if (haveCentreSection)
+                    {
+                        LineJoinPoint.Join(LineJoinPointBuffer, new LineJoinPoint.NewJoinInfo
+                        {
+                            FromIndex = 1,
+                            FromSection = lineTool.Data.OriginSectionEntity,
+                            ToIndex = 0,
+                            ToSection = lineTool.Data.CentralSectionEntity
+                        });
+                    }
+                    else if (haveEndSection)
+                    {
+                        LineJoinPoint.Join(LineJoinPointBuffer, new LineJoinPoint.NewJoinInfo
+                        {
+                            FromIndex = 1,
+                            FromSection = lineTool.Data.OriginSectionEntity,
+                            ToIndex = 0,
+                            ToSection = lineTool.Data.EndSectionEntity
+                        });
+                    }
+                    else if (LineJoinPointBuffer.Exists(endJoin.JoinData.ConnectedEntity))
+                    {
+                        LineJoinPoint.Join(LineJoinPointBuffer, new LineJoinPoint.NewJoinInfo
+                        {
+                            FromIndex = 1,
+                            FromSection = lineTool.Data.OriginSectionEntity,
+                            ToIndex = endJoin.JoinData.ConnectedIndex,
+                            ToSection = endJoin.JoinData.ConnectedEntity
+                        });
+                    }
+                }
+
+                if (haveCentreSection)
+                {
+                    UpdateJoinPoints(centreJoinPoints, bezierData.Centre);
+                    if (!haveOriginSection && LineJoinPointBuffer.Exists(originJoin.JoinData.ConnectedEntity))
+                    {
+                        LineJoinPoint.Join(LineJoinPointBuffer, new LineJoinPoint.NewJoinInfo
+                        {
+                            FromIndex = originJoin.JoinData.ConnectedIndex,
+                            FromSection = originJoin.JoinData.ConnectedEntity,
+                            ToIndex = 0,
+                            ToSection = lineTool.Data.CentralSectionEntity
+                        });
+                    }
+
+                    if (haveEndSection)
+                    {
+                        LineJoinPoint.Join(LineJoinPointBuffer, new LineJoinPoint.NewJoinInfo
+                        {
+                            FromIndex = 1,
+                            FromSection = lineTool.Data.CentralSectionEntity,
+                            ToIndex = 0,
+                            ToSection = lineTool.Data.EndSectionEntity
+                        });
+                    }
+                    else if (LineJoinPointBuffer.Exists(endJoin.JoinData.ConnectedEntity))
+                    {
+                        LineJoinPoint.Join(LineJoinPointBuffer, new LineJoinPoint.NewJoinInfo
+                        {
+                            FromIndex = 1,
+                            FromSection = lineTool.Data.CentralSectionEntity,
+                            ToIndex = endJoin.JoinData.ConnectedIndex,
+                            ToSection = endJoin.JoinData.ConnectedEntity
+                        });
+                    }
+                }
+
+                if (haveEndSection)
+                {
+                    UpdateJoinPoints(endJoinPoints, bezierData.End);
+                    if (!haveOriginSection && !haveCentreSection
+                                           && LineJoinPointBuffer.Exists(originJoin.JoinData.ConnectedEntity))
+                    {
+                        LineJoinPoint.Join(LineJoinPointBuffer, new LineJoinPoint.NewJoinInfo
+                        {
+                            FromIndex = originJoin.JoinData.ConnectedIndex,
+                            FromSection = originJoin.JoinData.ConnectedEntity,
+                            ToIndex = 0,
+                            ToSection = lineTool.Data.EndSectionEntity
+                        });
+                    }
+
+                    if (LineJoinPointBuffer.Exists(endJoin.JoinData.ConnectedEntity))
+                    {
+                        LineJoinPoint.Join(LineJoinPointBuffer, new LineJoinPoint.NewJoinInfo
+                        {
+                            FromIndex = 1,
+                            FromSection = lineTool.Data.EndSectionEntity,
+                            ToIndex = endJoin.JoinData.ConnectedIndex,
+                            ToSection = endJoin.JoinData.ConnectedEntity
+                        });
+                    }
+                }
             }
 
-            private void CreateOrUpdateSection(ref LineTool2 lineTool, int index, float3x3 bezier,
+            private bool TryCreateOrUpdateSection(ref LineTool2 lineTool, int index, float3x3 bezier,
+                ref Entity sectionEntity,
                 out DynamicBuffer<LineJoinPoint> joinPoints)
             {
+                // Don't create/update zero length sections
+                if (bezier.c0.IsCloseTo(bezier.c2))
+                {
+                    joinPoints = LineJoinPointBuffer.Exists(sectionEntity)
+                        ? LineJoinPointBuffer[sectionEntity]
+                        : default;
+                    return false;
+                }
+
                 if (index == -1)
                 {
-                    lineTool.Data.CentralSectionEntity =
-                        LineSection.NewLineSection(Ecb, JobIndex, lineTool.Data.Entity, bezier.c1,
-                            out joinPoints);
+                    sectionEntity = LineSection.NewLineSection(Ecb, JobIndex, lineTool.Data.Entity, bezier.c1,
+                        out joinPoints);
                 }
                 else
                 {
                     var section = LineSections[index];
                     section.Bezier = bezier;
-                    Ecb.SetComponent(JobIndex, lineTool.Data.CentralSectionEntity, section);
-                    joinPoints = LineJoinPointBuffer[lineTool.Data.CentralSectionEntity];
+                    Ecb.SetComponent(JobIndex, sectionEntity, section);
+                    joinPoints = LineJoinPointBuffer[sectionEntity];
                 }
+
+                return true;
             }
 
 
@@ -147,7 +291,9 @@ namespace Sibz.Lines
                 // Straight line
                 if (!originIsJoined && !endIsJoined)
                 {
+                    result.Origin = new float3x3(originPos, originPos, originPos);
                     result.Centre = new float3x3(originPos, math.lerp(originPos, endPos, 0.5f), endPos);
+                    result.End = new float3x3(endPos, endPos, endPos);
                 }
 
                 return result;
@@ -155,14 +301,24 @@ namespace Sibz.Lines
 
             private static void UpdateJoinPoints(DynamicBuffer<LineJoinPoint> joinPoints, float3x3 bezierData)
             {
-                var point1 = joinPoints[0];
-                var point2 = joinPoints[1];
-                point1.Position = bezierData.c0;
-                point2.Position = bezierData.c2;
-                point1.Direction = math.normalize(point2.Position - point1.Position);
-                point2.Direction = math.normalize(point1.Position - point2.Position);
-                joinPoints[0] = point1;
-                joinPoints[1] = point2;
+                if (joinPoints.Length != 2)
+                    return;
+                joinPoints[0] = UpdateJoinPoint(joinPoints[0], bezierData.c0, bezierData.c2);
+                joinPoints[1] = UpdateJoinPoint(joinPoints[1], bezierData.c2, bezierData.c0);
+            }
+
+            private static LineJoinPoint UpdateJoinPoint(LineJoinPoint point, float3 position, float3 otherPosition)
+            {
+                var result = point;
+                result.Position = position;
+
+                // Only update direction if not joined to another section
+                if (!result.IsJoined)
+                {
+                    result.Direction = math.normalize(otherPosition - position);
+                }
+
+                return result;
             }
 
             private void UpdateEndPoint(int sectionIndex, float3 position, int join)
