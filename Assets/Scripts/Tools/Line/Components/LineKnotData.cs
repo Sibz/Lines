@@ -1,4 +1,5 @@
-﻿using Unity.Entities;
+﻿using System;
+using Unity.Entities;
 using Unity.Mathematics;
 
 namespace Sibz.Lines
@@ -9,6 +10,7 @@ namespace Sibz.Lines
         public KnotFlags Flags;
     }
 
+    [Flags]
     public enum KnotFlags : ushort
     {
         None = 0,
