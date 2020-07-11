@@ -1,14 +1,31 @@
-﻿using Unity.Entities;
+﻿using System;
+using Unity.Entities;
 using Unity.Mathematics;
 
 namespace Sibz.Lines
 {
+    public static class JoinFlagsExtensions
+    {
+        public static bool HasFlags(this LineJoinPoint.JoinFlags thisField, LineJoinPoint.JoinFlags flag)
+        {
+            return ((ushort)thisField & (ushort)flag) == (ushort)flag;
+        }
+    }
     public struct LineJoinPoint : IBufferElementData
     {
         public float3 Direction;
         public float3 Position;
+        public JoinFlags Flags;
         public LineJoinData JoinData;
         public bool IsJoined => JoinData.IsConnected;
+
+        [Flags]
+        public enum JoinFlags : ushort
+        {
+            None,
+            NonFixedDirection
+        }
+
 
         public bool Equals(LineJoinPoint other)
         {

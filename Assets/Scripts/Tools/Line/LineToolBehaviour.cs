@@ -1,4 +1,5 @@
 ﻿using System;
+using Sibz.Lines.Tools;
 using Unity.Entities;
 using UnityEngine;
 
@@ -22,6 +23,7 @@ namespace Sibz.Lines
         //private LineTool lineTool;
 
         private bool placing;
+        private SnapNotifierBehaviour snapNotifierBehaviour;
 
         private Entity lineToolEntity;
 //        private SnapNotifierBehaviour snapNotifier;
@@ -37,6 +39,8 @@ namespace Sibz.Lines
             {
                 lineToolEntity = LineTool2.New();
             }
+
+            snapNotifierBehaviour = GetComponent<SnapNotifierBehaviour>();
 
             //lineTool = new LineTool(gameObject, LineBehaviourPrefab.gameObject, this);
             //snapNotifier = GetComponent<SnapNotifierBehaviour>();
@@ -66,7 +70,7 @@ namespace Sibz.Lines
             if (Time.frameCount % 5 == 0 && placing && LineDataWorld.World.EntityManager.GetComponentData<LineTool2>(lineToolEntity).State ==
                 LineTool2.ToolState.EditLine)
             {
-                LineToolUpdateLineEvent.New(transform.position);
+                LineToolUpdateEvent.New(transform.position);
             }
 
             if (Input.GetMouseButtonUp(0))
@@ -75,12 +79,34 @@ namespace Sibz.Lines
                 if (LineDataWorld.World.EntityManager.GetComponentData<LineTool2>(lineToolEntity).State ==
                     LineTool2.ToolState.Idle)
                 {
-                    LineToolCreateLineEvent.New(transform.position);
+                    if (snapNotifierBehaviour.SnappedTo)
+                    {
+                        LineToolCreateLineEvent.New(
+                            snapNotifierBehaviour.SnappedTo.transform.position,
+                            snapNotifierBehaviour.SnappedTo.GetComponent<NodeBehaviour>().JoinData,
+                            -snapNotifierBehaviour.SnappedTo.transform.forward
+                            );
+                    }
+                    else
+                    {
+                        LineToolCreateLineEvent.New(transform.position);
+                    }
+
                     placing = true;
                 }
                 else
                 {
                     placing = false;
+                }
+            }
+
+            if (Input.GetMouseButtonUp(2))
+            {
+                if (LineDataWorld.World.EntityManager.GetComponentData<LineTool2>(lineToolEntity).State ==
+                    LineTool2.ToolState.EditLine)
+                {
+                    placing = false;
+                    LineToolFinishEvent.New();
                 }
             }
 

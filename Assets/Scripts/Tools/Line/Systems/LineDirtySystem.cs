@@ -95,11 +95,14 @@ namespace Sibz.Lines.Tools.Systems
             {
                 line = EntityManager.GetComponentObject<GameObject>(LineEntity);
                 lineBehaviour = line.GetComponent<LineBehaviour>();
+                var originNodeBehaviour = lineBehaviour.OriginNode.GetComponent<NodeBehaviour>();
+                var endNodeBehaviour= lineBehaviour.EndNode.GetComponent<NodeBehaviour>();
 
                 if (!LineTool.Data.Entity.Equals(LineEntity))
                 {
-                    lineBehaviour.OriginNode.SetActive(false);
-                    lineBehaviour.EndNode.SetActive(false);
+                    lineBehaviour.OriginNode.SetActive(true);
+                    lineBehaviour.EndNode.SetActive(true);
+                    lineBehaviour.Line.NodeCollidersEnabled = true;
                     return;
                 }
 
@@ -108,24 +111,28 @@ namespace Sibz.Lines.Tools.Systems
                 if (sections.Length == 0)
                     return;
 
-                GetEndJoinPoints(out LineJoinPoint a, out LineJoinPoint b);
+                GetEndJoinPoints(out LineJoinPoint a, out LineJoinPoint b,
+                    out LineJoinData joinDataA, out LineJoinData joinDataB);
                 if (!a.Equals(default))
                 {
                     lineBehaviour.OriginNode.SetActive(true);
                     lineBehaviour.OriginNode.transform.position = a.Position;
                     lineBehaviour.OriginNode.transform.rotation = Quaternion.LookRotation(
                         line.transform.InverseTransformDirection(a.Direction));
+                    originNodeBehaviour.JoinData = joinDataA;
                 }
                 else
                 {
                     lineBehaviour.OriginNode.SetActive(false);
                 }
+
                 if (!b.Equals(default))
                 {
                     lineBehaviour.EndNode.SetActive(true);
                     lineBehaviour.EndNode.transform.position = b.Position;
                     lineBehaviour.EndNode.transform.rotation = Quaternion.LookRotation(
                         line.transform.InverseTransformDirection(b.Direction));
+                    endNodeBehaviour.JoinData = joinDataB;
                 }
                 else
                 {
@@ -133,12 +140,13 @@ namespace Sibz.Lines.Tools.Systems
                 }
             }
 
-            public void GetEndJoinPoints(out LineJoinPoint a, out LineJoinPoint b)
+            public void GetEndJoinPoints(out LineJoinPoint a, out LineJoinPoint b,
+                out LineJoinData joinDataA, out LineJoinData joinDataB)
             {
-
                 a = default;
                 b = default;
-
+                joinDataA = default;
+                joinDataB = default;
 
                 int len = sections.Length;
                 for (int i = 0; i < len; i++)
@@ -146,25 +154,31 @@ namespace Sibz.Lines.Tools.Systems
                     var section = sections[i];
                     if (a.Equals(default) && b.Equals(default))
                     {
+                        joinDataA.ConnectedEntity = section.Entity;
                         if (!JoinPoints[section.Entity][0].IsJoined)
                         {
                             a = JoinPoints[section.Entity][0];
+                            joinDataA.ConnectedIndex = 0;
                         }
                         else if (!JoinPoints[section.Entity][1].IsJoined)
                         {
                             a = JoinPoints[section.Entity][1];
+                            joinDataA.ConnectedIndex = 1;
                         }
                     }
 
                     if (b.Equals(default))
                     {
+                        joinDataA.ConnectedEntity = section.Entity;
                         if (!JoinPoints[section.Entity][0].IsJoined && !JoinPoints[section.Entity][0].Equals(a))
                         {
                             b = JoinPoints[section.Entity][0];
+                            joinDataA.ConnectedIndex = 0;
                         }
                         else if (!JoinPoints[section.Entity][1].IsJoined && !JoinPoints[section.Entity][1].Equals(a))
                         {
                             b = JoinPoints[section.Entity][1];
+                            joinDataA.ConnectedIndex = 1;
                         }
                     }
                 }

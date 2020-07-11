@@ -14,6 +14,7 @@ namespace Sibz.Lines.Systems
             EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.TempJob);
             EntityCommandBuffer.Concurrent ecbConcurrent = ecb.ToConcurrent();
             EntityArchetype archetype = Line2.LineArchetype;
+            var buffer = GetBufferFromEntity<LineJoinPoint>();
 
             Entities.ForEach((Entity entity, int entityInQueryIndex, ref LineToolCreateLineEvent lineEvent) =>
             {
@@ -21,7 +22,23 @@ namespace Sibz.Lines.Systems
                 var data = lineTool.Data;
                 if (lineTool.State == LineTool2.ToolState.Idle)
                 {
-                    data.Entity = Line2.New(ecbConcurrent,entityInQueryIndex, lineEvent.Position, archetype, out Entity initialSection);
+                    data.Entity = Line2.New(
+                        ecbConcurrent,entityInQueryIndex, lineEvent.Position, archetype, out Entity initialSection,
+                        out DynamicBuffer<LineJoinPoint> joinBuffer);
+
+                    if (!lineEvent.JoinTo.ConnectedEntity.Equals(Entity.Null))
+                    {
+                        LineJoinPoint.Join(
+                            buffer[lineEvent.JoinTo.ConnectedEntity],
+                            joinBuffer,
+                            new LineJoinPoint.NewJoinInfo
+                            {
+                                FromIndex = lineEvent.JoinTo.ConnectedIndex,
+                                FromSection = lineEvent.JoinTo.ConnectedEntity,
+                                ToIndex = 0,
+                                ToSection = initialSection
+                            });
+                    }
 
                     data.CentralSectionEntity = initialSection;
 

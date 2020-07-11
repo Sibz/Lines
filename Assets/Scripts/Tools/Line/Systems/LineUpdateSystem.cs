@@ -38,7 +38,7 @@ namespace Sibz.Lines
                 .WithReadOnly(lineSectionEntities)
                 .WithDeallocateOnJobCompletion(lineSections)
                 .WithDeallocateOnJobCompletion(lineSectionEntities)
-                .ForEach((Entity entity, int entityInQueryIndex, ref LineToolUpdateLineEvent updateLineEvent) =>
+                .ForEach((Entity entity, int entityInQueryIndex, ref LineToolUpdateEvent updateLineEvent) =>
                 {
                     LineUpdateJob job = new LineUpdateJob
                     {
@@ -67,7 +67,7 @@ namespace Sibz.Lines
             public EntityCommandBuffer.Concurrent Ecb;
             public int JobIndex;
 
-            public void Execute(ref LineTool2 lineTool, ref LineToolUpdateLineEvent updateLineEvent)
+            public void Execute(ref LineTool2 lineTool, ref LineToolUpdateEvent updateEvent)
             {
                 if (!TryGetEndNodes(ref lineTool, out int originSectionIndex, out int endSectionIndex))
                 {
@@ -76,17 +76,17 @@ namespace Sibz.Lines
                 }
 
                 int sectionIndex =
-                    updateLineEvent.Section.Equals(Entity.Null)
+                    updateEvent.JoinHoldingEntity.Equals(Entity.Null)
                         ? endSectionIndex
-                        : updateLineEvent.Section.Equals(LineSectionEntities[originSectionIndex])
+                        : updateEvent.JoinHoldingEntity.Equals(LineSectionEntities[originSectionIndex])
                             ? originSectionIndex
                             : endSectionIndex;
 
                 // Update the end point
                 UpdateEndPoint(
                     sectionIndex,
-                    updateLineEvent.Position,
-                    updateLineEvent.Section.Equals(Entity.Null) ? 1 : updateLineEvent.JoinIndex);
+                    updateEvent.Position,
+                    updateEvent.JoinHoldingEntity.Equals(Entity.Null) ? 1 : updateEvent.JoinIndex);
 
                 // Recalculate the bezier
                 RecalculateBezier(ref lineTool, originSectionIndex, endSectionIndex);
@@ -283,13 +283,16 @@ namespace Sibz.Lines
                 float3 originPos = LineSections[originIndex].Bezier.c0;
                 float3 endPos = LineSections[endIndex].Bezier.c2;
 
-                bool originIsJoined = LineJoinPointBuffer[LineSectionEntities[originIndex]][0]
-                    .IsJoined;
-                bool endIsJoined = LineJoinPointBuffer[LineSectionEntities[endIndex]][1]
-                    .IsJoined;
+                var originLinePoint = LineJoinPointBuffer[LineSectionEntities[originIndex]][0];
+                var endLinePoint = LineJoinPointBuffer[LineSectionEntities[originIndex]][1];
+
+                bool originHasFixedDirection = originLinePoint.IsJoined
+                                               && originLinePoint.Flags.HasFlags(LineJoinPoint.JoinFlags.NonFixedDirection);
+                bool endHasFixedDirection = endLinePoint.IsJoined
+                                            && endLinePoint.Flags != LineJoinPoint.JoinFlags.NonFixedDirection;
 
                 // Straight line
-                if (!originIsJoined && !endIsJoined)
+                if (!originHasFixedDirection && !endHasFixedDirection)
                 {
                     result.Origin = new float3x3(originPos, originPos, originPos);
                     result.Centre = new float3x3(originPos, math.lerp(originPos, endPos, 0.5f), endPos);
