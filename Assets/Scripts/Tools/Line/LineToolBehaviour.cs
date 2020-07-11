@@ -63,7 +63,7 @@ namespace Sibz.Lines
 
             }
 
-            if (Time.frameCount % 10 == 0 && placing && LineDataWorld.World.EntityManager.GetComponentData<LineTool2>(lineToolEntity).State ==
+            if (Time.frameCount % 5 == 0 && placing && LineDataWorld.World.EntityManager.GetComponentData<LineTool2>(lineToolEntity).State ==
                 LineTool2.ToolState.EditLine)
             {
                 LineToolUpdateLineEvent.New(transform.position);
