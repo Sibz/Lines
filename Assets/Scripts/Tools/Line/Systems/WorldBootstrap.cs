@@ -12,6 +12,7 @@ namespace Sibz.Lines.Systems
             group.AddSystemToUpdateList(world.CreateSystem<LineCreateSystem>());
             group.AddSystemToUpdateList(world.CreateSystem<LineUpdateSystem>());
             group.AddSystemToUpdateList(world.CreateSystem<NewLineSystem>());
+            group.AddSystemToUpdateList(world.CreateSystem<LineDirtySystem>());
             group.AddSystemToUpdateList(world.CreateSystem<DebugDrawlLinesSystem>());
             return true;
         }

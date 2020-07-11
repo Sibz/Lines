@@ -89,6 +89,8 @@ namespace Sibz.Lines
 
                 // Recalculate the bezier
                 RecalculateBezier(ref lineTool, originSectionIndex, endSectionIndex);
+
+                Ecb.AddComponent<Dirty>(JobIndex, lineTool.Data.Entity);
             }
 
             private void RecalculateBezier(ref LineTool2 lineTool, int originIndex, int endIndex)
