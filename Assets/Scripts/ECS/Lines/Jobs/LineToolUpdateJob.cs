@@ -158,18 +158,24 @@ namespace Sibz.Lines.ECS.Jobs
         private void UpdateJoinPoint()
         {
             int joinIndex = JoinPointEntities.IndexOf<Entity>(EventData.JoinPoint);
+
             if (joinIndex == -1)
             {
                 Debug.LogWarning("Tried to update join point that doesn't exist or isn't editable");
                 return;
             }
 
+            int otherJoinIndex = JoinPointEntities.IndexOf<Entity>(
+                Line.JoinPointA.Equals(EventData.JoinPoint) ? Line.JoinPointB: Line.JoinPointA );
+
             Entity joinPointEntity = JoinPointEntities[joinIndex];
             LineJoinPoint joinPoint = JoinPoints[joinIndex];
+            LineJoinPoint otherJoinPoint = JoinPoints[otherJoinIndex];
 
             joinPoint.Pivot = EventData.Position;
 
-            if (JoinPointEntities.Contains(EventData.JoinTo))
+            if (!otherJoinPoint.JoinToPointEntity.Equals(EventData.JoinTo)
+                && JoinPointEntities.Contains(EventData.JoinTo))
             {
                 LineJoinPoint eventJoinPoint = JoinPoints[JoinPointEntities.IndexOf<Entity>(EventData.JoinTo)];
                 joinPoint.Direction = -eventJoinPoint.Direction;
