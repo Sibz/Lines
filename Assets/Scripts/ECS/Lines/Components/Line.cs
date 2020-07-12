@@ -8,7 +8,7 @@ namespace Sibz.Lines.ECS.Components
     public struct Line : IComponentData
     {
         public static EntityArchetype LineArchetype = LineWorld.Em
-            .CreateArchetype(typeof(Line), typeof(NewLine));
+            .CreateArchetype(typeof(Line), typeof(LineKnotData), typeof(NewLine));
 
         public float3 Position;
         public Entity JoinPointA;
