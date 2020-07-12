@@ -79,7 +79,7 @@ namespace Sibz.Lines
 
         public void Update()
         {
-            if (Input.GetMouseButtonDown(2) && EditingLineBehaviour)
+            if ((Input.GetMouseButtonDown(2) || Input.GetKeyDown(KeyCode.Return)) && EditingLineBehaviour)
             {
                 NewLineCompleteEvent.New();
             }
