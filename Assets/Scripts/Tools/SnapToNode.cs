@@ -11,6 +11,7 @@ public class SnapToNode : MonoBehaviour
     private MoveToCursor thisMoveToCursorComponent;
 
     public GameObject Tool;
+
     private SnapNotifierBehaviour snapNotifier;
     /*private bool isSnapped;
     private GameObject snappedTo;*/
@@ -40,6 +41,7 @@ public class SnapToNode : MonoBehaviour
         {
             snapNotifier.SnappedTo = null;
         }
+
         if (targets.Count == 0)
         {
             return;
@@ -55,13 +57,14 @@ public class SnapToNode : MonoBehaviour
         Vector3 targetPos = default;
         Vector3 colliderPos = transform.position;
         GameObject snappedTo = null;
-        for (int i = targets.Count -1; i >=0; i--)
+        for (int i = targets.Count - 1; i >= 0; i--)
         {
-            if (!targets[i])
+            if (!targets[i] || !targets[i].activeSelf)
             {
                 targets.RemoveAt(i);
             }
         }
+
         foreach (GameObject target in targets)
         {
             Vector3 pos = target.transform.position;
@@ -76,7 +79,11 @@ public class SnapToNode : MonoBehaviour
             snappedTo = target;
         }
 
-        Tool.transform.position = targetPos;
+        if (snappedTo)
+        {
+            Tool.transform.position = targetPos;
+        }
+
         if (snapNotifier)
         {
             snapNotifier.SnappedTo = snappedTo;
