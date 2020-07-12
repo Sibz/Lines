@@ -50,6 +50,8 @@ namespace Sibz.Bezier
             return math.lerp(math.lerp(math.lerp(v0, v1, t), b, t), math.lerp(b, math.lerp(v2, v3, t), t), t);
         }
 
+        public static float3 GetVectorOnCurve(float3x3 b, float t)
+            => GetVectorOnCurve(b.c0, b.c1, b.c2, t);
         public static float3 GetVectorOnCurve(float3 v0, float3 v1, float3 v2, float t)
         {
             float3 a = math.lerp(v0, v1, t);
