@@ -34,8 +34,7 @@ namespace Sibz.Lines.ECS.Systems
                         lineTool.LineBehaviour.Complete();
                     }
 
-                    lineTool.Data = new LineToolData();
-                    lineTool.State = LineToolState.Idle;
+                    lineTool = LineTool.Default();
                     SetSingleton(lineTool);
 
                 }).WithoutBurst().Run();

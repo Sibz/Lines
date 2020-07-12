@@ -70,7 +70,7 @@ namespace Sibz.Lines
                     Destroy(EditingLineBehaviour.gameObject);
                 }
 
-                LineWorld.Em.SetComponentData(lineToolEntity, new LineTool());
+                LineWorld.Em.SetComponentData(lineToolEntity, LineTool.Default());
                 LineWorld.Em.AddComponent<Disabled>(lineToolEntity);
             }
 
@@ -79,6 +79,11 @@ namespace Sibz.Lines
 
         public void Update()
         {
+            if (Input.GetMouseButtonDown(2) && EditingLineBehaviour)
+            {
+                NewLineCompleteEvent.New();
+            }
+
             if (Input.GetMouseButtonDown(0))
             {
                 if (LineTool.State == LineToolState.Idle)
@@ -96,25 +101,9 @@ namespace Sibz.Lines
 
                     draggingNewLine = true;
                 }
-
-                //lineTool.OriginSnappedToNode = snapNotifier.SnappedTo;
-                //lineTool.StartLine();
-                if (EditingLineBehaviour)
-                {
-                    NewLineUpdateEvent.New(EditingLineBehaviour.EndNode2.JoinPoint, transform.position);
-                }
             }
-
-            if (Input.GetMouseButtonDown(2))
-            {
-                if (EditingLineBehaviour)
-                {
-                    NewLineCompleteEvent.New();
-                }
-            }
-
             if ((Input.GetMouseButton(0) && draggingNewLine && EditingLineBehaviour)
-                || (Input.GetMouseButtonDown(0) && !draggingNewLine && EditingLineBehaviour))
+                     || (Input.GetMouseButtonDown(0) && !draggingNewLine && EditingLineBehaviour))
             {
                 EcsLineNodeBehaviour node;
                 if (snapNotifier.SnappedTo

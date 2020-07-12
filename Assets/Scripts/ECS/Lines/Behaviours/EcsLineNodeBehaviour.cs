@@ -16,7 +16,7 @@ namespace Sibz.Lines.ECS.Behaviours
             var data = JoinPointData;
             var tx = transform;
 
-            if (!data.Direction.Equals(float3.zero))
+            if (!data.Direction.Equals(float3.zero) && !float.IsNaN(data.Direction.x))
             {
                 tx.rotation = Quaternion.LookRotation(data.Direction);
                 tx.position =

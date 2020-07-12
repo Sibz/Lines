@@ -412,7 +412,7 @@ namespace Sibz.Lines
             for (int i = 0; i < numberOfKnots; i++)
             {
                 float t = (float) i / (numberOfKnots - 1);
-                knots[i] = Bezier.GetVectorOnCurve(originPos, controlPoint, endPos, invert ? 1f - t : t);
+                knots[i] = Bezier.Bezier.GetVectorOnCurve(originPos, controlPoint, endPos, invert ? 1f - t : t);
                 float3 worldKnot = CurrentLine.transform.TransformPoint(knots[i]);
                 Debug.DrawLine(worldKnot, worldKnot + new float3(0, 1, 0), Color.blue, 0.05f);
             }

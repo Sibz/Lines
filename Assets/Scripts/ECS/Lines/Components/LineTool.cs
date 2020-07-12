@@ -15,9 +15,34 @@ namespace Sibz.Lines.ECS.Components
             State == LineToolState.Editing && LineWorld.Em.Exists(Data.LineEntity)
                 ? LineWorld.Em.GetComponentObject<EcsLineBehaviour>(Data.LineEntity)
                 : null;
+
+        public static LineTool Default()
+        {
+            return new LineTool
+            {
+                Data =
+                {
+                    Modifiers =
+                    {
+                        From =
+                        {
+                            Ratio = 1f,
+                            Size = 2f,
+                        },
+                        To =
+                        {
+                            Ratio = 1f,
+                            Size = 2f,
+                        }
+                    }
+                }
+            };
+        }
         public static Entity New()
         {
-            return LineWorld.Em.CreateEntity(Archetype);
+            var ent = LineWorld.Em.CreateEntity(Archetype);
+            LineWorld.Em.SetComponentData(ent, Default());
+            return ent;
         }
     }
 }

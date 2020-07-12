@@ -8,6 +8,8 @@ namespace Sibz.Lines.ECS.Components
         public ToolModifiers Modifiers;
         public Entity LineProfileEntity;
         public Entity LineEntity;
+        public float3x3 Bezier1;
+        public float3x3 Bezier2;
         public struct ToolModifiers
         {
             public EndMods To;
@@ -15,13 +17,11 @@ namespace Sibz.Lines.ECS.Components
 
             public struct EndMods
             {
-                public float3 Position;
                 public float Size;
                 public float Ratio;
                 public float Height;
                 public float InnerHeight;
                 public float InnerHeightDistanceFromEnd;
-                public Entity JoinPoint;
             }
 
         }

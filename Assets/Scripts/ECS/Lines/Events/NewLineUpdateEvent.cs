@@ -8,7 +8,6 @@ namespace Sibz.Lines.ECS.Events
     {
         public Entity JoinPoint;
         public Entity JoinTo;
-        public LineJoinPoint JoinToData;
         public float3 Position;
 
         public static Entity New(Entity joinPoint, float3 position, Entity joinTo = default)
@@ -18,10 +17,7 @@ namespace Sibz.Lines.ECS.Events
             {
                 JoinPoint = joinPoint,
                 Position = position,
-                JoinTo = joinTo,
-                JoinToData = joinTo.Equals(default)
-                    ? default
-                    : LineWorld.Em.GetComponentData<LineJoinPoint>(joinTo)
+                JoinTo = joinTo
             });
             return entity;
         }

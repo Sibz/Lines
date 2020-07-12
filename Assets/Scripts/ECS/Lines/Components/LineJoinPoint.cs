@@ -11,13 +11,16 @@ namespace Sibz.Lines.ECS.Components
         public float3 Pivot;
         public float3 Direction;
         public float DistanceFromPivot;
+
         /// <summary>
         /// Max movement from direction in radians
         /// </summary>
         public float AngularLimit;
 
         private const float DefaultAngularLimit = 6.283185307179586476925286766559f;
-        public static Entity New(Entity parentEntity, float3 pivot, float3 direction = default, float distanceFromPivot = 0, float angularLimit = DefaultAngularLimit)
+
+        public static Entity New(Entity parentEntity, float3 pivot, float3 direction = default,
+            float distanceFromPivot = 0, float angularLimit = DefaultAngularLimit)
         {
             Entity entity = LineWorld.Em.CreateEntity(typeof(LineJoinPoint));
             LineWorld.Em.SetComponentData(entity, new LineJoinPoint
@@ -31,6 +34,16 @@ namespace Sibz.Lines.ECS.Components
             return entity;
         }
 
+        public static void UnJoin(EntityCommandBuffer.Concurrent ecb, int jobIndex,
+            ref LineJoinPoint fromData, Entity fromEntity,
+            ref LineJoinPoint toData, Entity toEntity)
+        {
+            fromData.JoinedEntity = Entity.Null;
+            toData.JoinedEntity = Entity.Null;
+            ecb.SetComponent(jobIndex, fromEntity, fromData);
+            ecb.SetComponent(jobIndex, toEntity, toData);
+        }
+
         public static void Join(Entity a, Entity b)
         {
             static void Join(Entity a1, Entity b1)
@@ -39,22 +52,24 @@ namespace Sibz.Lines.ECS.Components
                 jp.JoinedEntity = b1;
                 LineWorld.Em.SetComponentData(a1, jp);
             }
-           Join(a,b);
-           Join(b,a);
+
+            Join(a, b);
+            Join(b, a);
         }
 
         public static void Join(
             EntityCommandBuffer.Concurrent ecb, int jobIndex,
-            LineJoinPoint fromData, Entity fromEntity,
-            LineJoinPoint toData, Entity toEntity)
+            ref LineJoinPoint fromData, Entity fromEntity,
+            ref LineJoinPoint toData, Entity toEntity)
         {
-            void Join(Entity a1,LineJoinPoint data, Entity b1)
+            void Join(Entity a1, ref LineJoinPoint data, Entity b1)
             {
                 data.JoinedEntity = b1;
                 ecb.SetComponent(jobIndex, a1, data);
             }
-            Join(fromEntity, fromData, toEntity);
-            Join(toEntity, toData, fromEntity);
+
+            Join(fromEntity, ref fromData, toEntity);
+            Join(toEntity, ref toData, fromEntity);
         }
     }
 }

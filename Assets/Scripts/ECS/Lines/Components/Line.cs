@@ -11,6 +11,8 @@ namespace Sibz.Lines.ECS.Components
             .CreateArchetype(typeof(Line), typeof(NewLine));
 
         public float3 Position;
+        public Entity JoinPointA;
+        public Entity JoinPointB;
 
         private static GameObject prefab;
         public static GameObject Prefab => prefab == null
