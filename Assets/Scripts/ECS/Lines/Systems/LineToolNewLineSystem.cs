@@ -13,9 +13,12 @@ namespace Sibz.Lines.ECS.Systems
 {
     public class LineToolNewLineSystem : SystemBase
     {
+        private EntityQuery query;
         protected override void OnCreate()
         {
+            query = GetEntityQuery(typeof(NewLineEvent));
             RequireSingletonForUpdate<LineTool>();
+            RequireForUpdate(query);
         }
 
         protected override void OnUpdate()

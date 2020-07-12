@@ -32,6 +32,7 @@ namespace Sibz.Lines.ECS.Jobs
         private void CreateLineJoinPoints(LineToolData data)
         {
             EcsLineBehaviour lineObject = EntityManager.GetComponentObject<EcsLineBehaviour>(data.LineEntity);
+            lineObject.LineEntity = data.LineEntity;
 
             lineObject.EndNode1.JoinPoint = LineJoinPoint.New(data.LineEntity, data.Modifiers.From.Position);
             lineObject.EndNode2.JoinPoint = LineJoinPoint.New(data.LineEntity, data.Modifiers.To.Position);

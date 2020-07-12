@@ -12,10 +12,15 @@ namespace Sibz.Lines.ECS.Behaviours
 
         public Entity LineEntity;
 
-        private bool destroyCorrectly;
+        //private bool destroyCorrectly;
 
-        public void Destroy()
+        private void Destroy()
         {
+            if (!LineWorld.World.IsCreated)
+            {
+                return;
+            }
+
             if (LineWorld.Em.Exists(EndNode1.JoinPoint))
             {
                 LineWorld.Em.DestroyEntity(EndNode1.JoinPoint);
@@ -28,18 +33,25 @@ namespace Sibz.Lines.ECS.Behaviours
             {
                 LineWorld.Em.DestroyEntity(LineEntity);
             }
-            destroyCorrectly = true;
-            Destroy(gameObject);
+            //destroyCorrectly = true;
+            //Destroy(gameObject);
+        }
+
+        public void Complete()
+        {
+            EndNode1.GetComponent<Collider>().enabled = true;
+            EndNode2.GetComponent<Collider>().enabled = true;
         }
 
         private void OnDestroy()
         {
-            if (!destroyCorrectly)
+            Destroy();
+            /*if (LineWorld.World.IsCreated && LineWorld.Em.Exists(LineEntity) && !destroyCorrectly)
             {
                 Debug.LogWarning(
                     "Line was not destroyed using EcsLineBehaviour.Destroy method. "+
                     "This will not clean up relevant entities");
-            }
+            }*/
         }
     }
 }

@@ -19,10 +19,13 @@ namespace Sibz.Lines.ECS.Systems
 
         protected override void OnCreate()
         {
-            RequireSingletonForUpdate<LineTool>();
+
             updateEventQuery = GetEntityQuery(typeof(NewLineUpdateEvent));
             // TODO: Update only editable join points
             joinPointQuery = GetEntityQuery(typeof(LineJoinPoint));
+
+            RequireSingletonForUpdate<LineTool>();
+            RequireForUpdate(eventQuery);
         }
 
         protected override void OnUpdate()
