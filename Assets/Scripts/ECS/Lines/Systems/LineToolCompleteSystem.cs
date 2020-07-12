@@ -13,9 +13,7 @@ namespace Sibz.Lines.ECS.Systems
             query = GetEntityQuery(typeof(NewLineCompleteEvent));
             RequireSingletonForUpdate<LineTool>();
             RequireForUpdate(query);
-
         }
-
 
         protected override void OnUpdate()
         {

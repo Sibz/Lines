@@ -1,7 +1,5 @@
-﻿using System;
-using Unity.Entities;
+﻿using Unity.Entities;
 using UnityEngine;
-using Object = System.Object;
 
 namespace Sibz.Lines.ECS.Behaviours
 {
@@ -11,8 +9,6 @@ namespace Sibz.Lines.ECS.Behaviours
         public EcsLineNodeBehaviour EndNode2;
 
         public Entity LineEntity;
-
-        //private bool destroyCorrectly;
 
         private void Destroy()
         {
@@ -33,8 +29,6 @@ namespace Sibz.Lines.ECS.Behaviours
             {
                 LineWorld.Em.DestroyEntity(LineEntity);
             }
-            //destroyCorrectly = true;
-            //Destroy(gameObject);
         }
 
         public void Complete()
@@ -46,12 +40,6 @@ namespace Sibz.Lines.ECS.Behaviours
         private void OnDestroy()
         {
             Destroy();
-            /*if (LineWorld.World.IsCreated && LineWorld.Em.Exists(LineEntity) && !destroyCorrectly)
-            {
-                Debug.LogWarning(
-                    "Line was not destroyed using EcsLineBehaviour.Destroy method. "+
-                    "This will not clean up relevant entities");
-            }*/
         }
     }
 }

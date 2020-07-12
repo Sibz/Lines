@@ -30,6 +30,7 @@ namespace Sibz.Lines.ECS.Jobs
         {
             Ecb.AddComponent<Dirty>(JobIndex, lineTool.Data.LineEntity);
         }
+
         private void UpdateJoinPoint()
         {
             int joinIndex = JoinPointEntities.IndexOf<Entity>(EventData.JoinPoint);
@@ -42,6 +43,7 @@ namespace Sibz.Lines.ECS.Jobs
             var joinPointEntity = JoinPointEntities[joinIndex];
             var joinPoint = JoinPoints[joinIndex];
             joinPoint.Pivot = EventData.Position;
+
             if (!EventData.JoinTo.Equals(Entity.Null))
             {
                 LineJoinPoint.Join(Ecb, JobIndex,
@@ -50,7 +52,6 @@ namespace Sibz.Lines.ECS.Jobs
             }
             else
             {
-                //Debug.Log("Setting Join Point:" + joinPoint.Pivot);
                 Ecb.SetComponent(JobIndex, joinPointEntity, joinPoint);
             }
         }

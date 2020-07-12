@@ -1,13 +1,8 @@
-﻿using System;
-using Sibz.Lines.ECS.Behaviours;
-using Sibz.Lines.ECS.Components;
+﻿using Sibz.Lines.ECS.Components;
 using Sibz.Lines.ECS.Enums;
 using Sibz.Lines.ECS.Events;
 using Sibz.Lines.ECS.Jobs;
-using Unity.Collections;
 using Unity.Entities;
-using Unity.Jobs;
-using UnityEngine;
 
 namespace Sibz.Lines.ECS.Systems
 {
