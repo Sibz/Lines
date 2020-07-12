@@ -35,9 +35,9 @@ namespace Sibz.Lines
                 : throw new InvalidOperationException("Tool singleton not found");
 
         private EcsLineBehaviour EditingLineBehaviour =>
-            LineWorld.Em.Exists(lineToolEntity) &&
-            LineTool.State == LineToolState.Editing &&
-            LineWorld.Em.Exists(LineTool.Data.LineEntity)
+            LineWorld.Em.Exists(lineToolEntity)
+            && LineTool.State == LineToolState.Editing
+            && LineWorld.Em.Exists(LineTool.Data.LineEntity)
                 ? LineWorld.Em.GetComponentObject<EcsLineBehaviour>(LineTool.Data.LineEntity)
                 : null;
 
@@ -57,6 +57,7 @@ namespace Sibz.Lines
             {
                 LineWorld.Em.RemoveComponent<Disabled>(lineToolEntity);
             }
+
             snapNotifier = GetComponent<SnapNotifierBehaviour>();
         }
 
@@ -68,10 +69,11 @@ namespace Sibz.Lines
                 {
                     Destroy(EditingLineBehaviour.gameObject);
                 }
+
                 LineWorld.Em.SetComponentData(lineToolEntity, new LineTool());
                 LineWorld.Em.AddComponent<Disabled>(lineToolEntity);
-
             }
+
             //lineTool.Cancel();
         }
 
@@ -111,13 +113,19 @@ namespace Sibz.Lines
                 }
             }
 
-            if (Input.GetMouseButton(0))
+            if ((Input.GetMouseButton(0) && draggingNewLine && EditingLineBehaviour)
+                || (Input.GetMouseButtonDown(0) && !draggingNewLine && EditingLineBehaviour))
             {
-                if (draggingNewLine && EditingLineBehaviour)
+                EcsLineNodeBehaviour node;
+                if (snapNotifier.SnappedTo
+                    && (node = snapNotifier.SnappedTo.GetComponent<EcsLineNodeBehaviour>()) != null)
+                {
+                    NewLineUpdateEvent.New(EditingLineBehaviour.EndNode2.JoinPoint, transform.position, node.JoinPoint);
+                }
+                else
                 {
                     NewLineUpdateEvent.New(EditingLineBehaviour.EndNode2.JoinPoint, transform.position);
                 }
-                //lineTool.UpdateLine();
             }
 
             if (Input.GetMouseButtonUp(0))
