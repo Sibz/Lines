@@ -64,8 +64,13 @@ namespace Sibz.Lines
         {
             if (LineWorld.World.IsCreated && LineWorld.Em.Exists(lineToolEntity))
             {
+                if (EditingLineBehaviour)
+                {
+                    EditingLineBehaviour.Destroy();
+                }
                 LineWorld.Em.SetComponentData(lineToolEntity, new LineTool());
                 LineWorld.Em.AddComponent<Disabled>(lineToolEntity);
+
             }
             //lineTool.Cancel();
         }

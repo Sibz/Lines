@@ -29,7 +29,7 @@ namespace Sibz.Lines.ECS.Behaviours
                 LineWorld.Em.DestroyEntity(LineEntity);
             }
             destroyCorrectly = true;
-            Destroy(this);
+            Destroy(gameObject);
         }
 
         private void OnDestroy()
