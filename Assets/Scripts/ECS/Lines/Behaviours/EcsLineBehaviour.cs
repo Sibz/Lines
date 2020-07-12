@@ -8,6 +8,6 @@ namespace Sibz.Lines.ECS.Behaviours
         public EcsLineNodeBehaviour EndNode1;
         public EcsLineNodeBehaviour EndNode2;
 
-        public Entity EcsLineEntity;
+        public Entity LineEntity;
     }
 }

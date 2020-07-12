@@ -11,13 +11,17 @@ namespace Sibz.Lines.ECS
         public static LineWorld World => world ?? (world = new LineWorld());
         public static EntityManager Em => World.EntityManager;
         public static LineWorldSimGroup SimGroup => World.GetOrCreateSystem<LineWorldSimGroup>();
+
         public LineWorld() : base("Line Data World")
         {
         }
 
         public void Initialise()
         {
-            foreach (Type type in Assembly.GetAssembly(typeof(LineWorld)).GetTypes().Where(x => x.IsSubclassOf(typeof(SystemBase))))
+            foreach (Type type in Assembly.GetAssembly(typeof(LineWorld)).GetTypes()
+                .Where(x =>
+                    (x.IsSubclassOf(typeof(SystemBase)) || x.IsSubclassOf(typeof(ComponentSystemBase)))
+                && x!=typeof(LineWorldSimGroup)))
             {
                 SimGroup.AddSystemToUpdateList(World.GetOrCreateSystem(type));
             }

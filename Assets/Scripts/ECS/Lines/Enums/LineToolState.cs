@@ -3,7 +3,6 @@
     public enum LineToolState
     {
         Idle,
-        New,
         Editing
     }
 }

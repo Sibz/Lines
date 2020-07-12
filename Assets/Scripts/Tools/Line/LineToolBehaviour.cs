@@ -1,5 +1,6 @@
 ﻿using System;
 using Sibz.Lines.ECS;
+using Sibz.Lines.ECS.Behaviours;
 using Sibz.Lines.ECS.Components;
 using Sibz.Lines.ECS.Enums;
 using Sibz.Lines.ECS.Events;
@@ -33,6 +34,16 @@ namespace Sibz.Lines
                 ? LineWorld.Em.GetComponentData<LineTool>(lineToolEntity)
                 : throw new InvalidOperationException("Tool singleton not found");
 
+        private EcsLineBehaviour EditingLineBehaviour =>
+            LineWorld.Em.Exists(lineToolEntity) &&
+            LineTool.State == LineToolState.Editing &&
+            LineWorld.Em.Exists(LineTool.Data.LineEntity)
+                ? LineWorld.Em.GetComponentObject<EcsLineBehaviour>(LineTool.Data.LineEntity)
+                : null;
+
+
+        private bool draggingNewLine;
+
         public void OnEnable()
         {
             if (!LineBehaviourPrefab)
@@ -51,7 +62,11 @@ namespace Sibz.Lines
 
         public void OnDisable()
         {
-            LineWorld.Em.AddComponent<Disabled>(lineToolEntity);
+            if (LineWorld.World.IsCreated && LineWorld.Em.Exists(lineToolEntity))
+            {
+                LineWorld.Em.SetComponentData(lineToolEntity, new LineTool());
+                LineWorld.Em.AddComponent<Disabled>(lineToolEntity);
+            }
             //lineTool.Cancel();
         }
 
@@ -62,18 +77,29 @@ namespace Sibz.Lines
                 if (LineTool.State == LineToolState.Idle)
                 {
                     NewLineEvent.New(transform.position);
+                    draggingNewLine = true;
                 }
+
                 //lineTool.OriginSnappedToNode = snapNotifier.SnappedTo;
                 //lineTool.StartLine();
+                if (EditingLineBehaviour)
+                {
+                    NewLineUpdateEvent.New(EditingLineBehaviour.EndNode2.JoinPoint, transform.position);
+                }
             }
 
             if (Input.GetMouseButton(0))
             {
+                if (draggingNewLine && EditingLineBehaviour)
+                {
+                    NewLineUpdateEvent.New(EditingLineBehaviour.EndNode2.JoinPoint, transform.position);
+                }
                 //lineTool.UpdateLine();
             }
 
             if (Input.GetMouseButtonUp(0))
             {
+                draggingNewLine = false;
                 //lineTool.EndLine();
             }
 
