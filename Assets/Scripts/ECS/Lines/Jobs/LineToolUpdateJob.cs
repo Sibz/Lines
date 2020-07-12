@@ -58,11 +58,16 @@ namespace Sibz.Lines.ECS.Jobs
             b1.c0 = pointA;
             b2.c0 = pointB;
 
-            jp1.Direction = jp1.Direction.Equals(float3.zero) || float.IsNaN(jp1.Direction.x)
+            // If join points invalid or not connected initialise to facing other point
+            jp1.Direction = jp1.Direction.Equals(float3.zero)
+                            || float.IsNaN(jp1.Direction.x)
+                            || !pointBIsConnected && !pointAIsConnected
                 ? Normalize(pointB - pointA)
                 : jp1.Direction;
-            jp2.Direction = jp2.Direction.Equals(float3.zero) || float.IsNaN(jp2.Direction.x)
-                ? Normalize(pointB - pointA)
+            jp2.Direction = jp2.Direction.Equals(float3.zero)
+                            || float.IsNaN(jp2.Direction.x)
+                            || !pointAIsConnected &&  !pointBIsConnected
+                ? Normalize(pointA - pointB)
                 : jp2.Direction;
 
             float3x2 forwards = new float3x2(jp1.Direction, jp2.Direction);
