@@ -1,6 +1,8 @@
 ﻿using System;
 using Sibz.Lines.ECS;
 using Sibz.Lines.ECS.Components;
+using Sibz.Lines.ECS.Enums;
+using Sibz.Lines.ECS.Events;
 using Unity.Entities;
 using UnityEngine;
 
@@ -20,10 +22,16 @@ namespace Sibz.Lines
         public Material BezierMaterial;
 
         public GameObject Capsule;
+
         // private LineTool lineTool;
         private SnapNotifierBehaviour snapNotifier;
 
         private Entity lineToolEntity;
+
+        private LineTool LineTool =>
+            LineWorld.Em.Exists(lineToolEntity)
+                ? LineWorld.Em.GetComponentData<LineTool>(lineToolEntity)
+                : throw new InvalidOperationException("Tool singleton not found");
 
         public void OnEnable()
         {
@@ -34,11 +42,16 @@ namespace Sibz.Lines
 
             //lineTool = new LineTool(gameObject, LineBehaviourPrefab.gameObject, this);
             lineToolEntity = LineWorld.Em.Exists(lineToolEntity) ? lineToolEntity : LineTool.New();
+            if (LineWorld.Em.HasComponent<Disabled>(lineToolEntity))
+            {
+                LineWorld.Em.RemoveComponent<Disabled>(lineToolEntity);
+            }
             snapNotifier = GetComponent<SnapNotifierBehaviour>();
         }
 
         public void OnDisable()
         {
+            LineWorld.Em.AddComponent<Disabled>(lineToolEntity);
             //lineTool.Cancel();
         }
 
@@ -46,6 +59,10 @@ namespace Sibz.Lines
         {
             if (Input.GetMouseButtonDown(0))
             {
+                if (LineTool.State == LineToolState.Idle)
+                {
+                    NewLineEvent.New(transform.position);
+                }
                 //lineTool.OriginSnappedToNode = snapNotifier.SnappedTo;
                 //lineTool.StartLine();
             }
