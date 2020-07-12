@@ -1,5 +1,6 @@
 ﻿using Sibz.Lines.ECS.Components;
 using Sibz.Math;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -8,8 +9,7 @@ namespace Sibz.Lines.ECS.Jobs
 {
     public struct LineToolUpdateKnotsJob : IJob
     {
-
-        public LineTool LineTool;
+        [ReadOnly] [DeallocateOnJobCompletion] public NativeArray<LineTool> ToolData;
         public LineProfile LineProfile;
         public DynamicBuffer<LineKnotData> KnotData;
 
@@ -17,20 +17,20 @@ namespace Sibz.Lines.ECS.Jobs
         {
             KnotData.Clear();
 
-            float3x3 b1 = LineTool.Data.Bezier1;
-            float3x3 b2 = LineTool.Data.Bezier2;
+            float3x3 b1 = ToolData[0].Data.Bezier1;
+            float3x3 b2 = ToolData[0].Data.Bezier2;
 
             GetKnotsForBezier(b1);
             if (!b1.c2.IsCloseTo(b2.c2, LineProfile.KnotSpacing))
             {
                 GetKnotsForBezier(new float3x3(b1.c2, math.lerp(b1.c2, b2.c2, 0.5f), b2.c2));
             }
+
             GetKnotsForBezier(b2);
         }
 
         private void GetKnotsForBezier(float3x3 b, bool invert = false)
         {
-
             float lineDistance =
                 (math.distance(b.c0, b.c1) + math.distance(b.c1, b.c2) + math.distance(b.c0, b.c2)) / 2;
 

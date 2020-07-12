@@ -49,8 +49,10 @@ namespace Sibz.Lines.ECS.Systems
             var lineEntities = lineQuery.ToEntityArrayAsync(Allocator.TempJob, out jh1);
             var lines = lineQuery.ToComponentDataArrayAsync<Line>(Allocator.TempJob, out jh2);
 
-            Dependency = JobHandle.CombineDependencies(Dependency, jh1, jh2);
+            NativeArray<LineTool> toolData = new NativeArray<LineTool>(1, Allocator.TempJob);
 
+            toolData[0] = lineTool;
+            Dependency = JobHandle.CombineDependencies(Dependency, jh1, jh2);
 
             Dependency = Entities
                 .WithStoreEntityQueryInField(ref eventQuery)
@@ -70,12 +72,13 @@ namespace Sibz.Lines.ECS.Systems
                         Lines  = lines,
                         LineEntities = lineEntities
                     }.Execute(ref lineTool);
+                    toolData[0] = lineTool;
                     ecbConcurrent.SetComponent(entityInQueryIndex, lineToolEntity, lineTool);
                 }).Schedule(Dependency);
 
             Dependency = new LineToolUpdateKnotsJob
             {
-                LineTool = lineTool,
+                ToolData = toolData,
                 KnotData = EntityManager.GetBuffer<LineKnotData>(lineTool.Data.LineEntity),
                 //TODO: Load line profile
                 LineProfile = LineProfile.Default()
