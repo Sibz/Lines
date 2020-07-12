@@ -15,5 +15,17 @@ namespace Sibz.Math
             return (float) (f3.x * (double) f3.x + f3.y * (double) f3.y +
                             f3.z * (double) f3.z);
         }
+
+        public static bool IsCloseTo(this float3 v, float3 point, float precision = 0.1f)
+        {
+            return v.x.IsCloseTo(point.x, precision)
+                   && v.y.IsCloseTo(point.y, precision)
+                   && v.z.IsCloseTo(point.z, precision);
+        }
+
+        public static bool IsCloseTo(this float f, float other, float precision = 0.1f)
+        {
+            return other < f + precision && other > f - precision;
+        }
     }
 }
