@@ -1,18 +1,26 @@
-﻿using Sibz.Lines.ECS.Systems;
+﻿using System;
+using System.Linq;
+using System.Reflection;
 using Unity.Entities;
 
 namespace Sibz.Lines.ECS
 {
     public class LineWorld : World
     {
-        public static LineWorld World;
+        private static LineWorld world;
+        public static LineWorld World => world ?? (world = new LineWorld());
         public static EntityManager Em => World.EntityManager;
-
-        public readonly SimulationSystemGroup SimGroup;
+        public static LineWorldSimGroup SimGroup => World.GetOrCreateSystem<LineWorldSimGroup>();
         public LineWorld() : base("Line Data World")
         {
-            SimGroup = CreateSystem<SimulationSystemGroup>();
-            SimGroup.AddSystemToUpdateList(CreateSystem<NewLineSystem>());
+        }
+
+        public void Initialise()
+        {
+            foreach (Type type in Assembly.GetAssembly(typeof(LineWorld)).GetTypes().Where(x => x.IsSubclassOf(typeof(SystemBase))))
+            {
+                SimGroup.AddSystemToUpdateList(World.GetOrCreateSystem(type));
+            }
         }
     }
 }
