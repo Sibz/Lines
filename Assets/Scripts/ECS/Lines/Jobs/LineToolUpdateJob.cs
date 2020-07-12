@@ -45,8 +45,8 @@ namespace Sibz.Lines.ECS.Jobs
             LineJoinPoint jp1 = JoinPoints[JoinPointEntities.IndexOf<Entity>(Line.JoinPointA)];
             LineJoinPoint jp2 = JoinPoints[JoinPointEntities.IndexOf<Entity>(Line.JoinPointB)];
 
-            bool pointAIsConnected = JoinPointEntities.Contains(jp1.JoinedEntity);
-            bool pointBIsConnected = JoinPointEntities.Contains(jp2.JoinedEntity);
+            bool pointAIsConnected = JoinPointEntities.Contains(jp1.JoinToPointEntity);
+            bool pointBIsConnected = JoinPointEntities.Contains(jp2.JoinToPointEntity);
 
             float3 pointA = jp1.Pivot;
             float3 pointB = jp2.Pivot;
@@ -177,11 +177,11 @@ namespace Sibz.Lines.ECS.Jobs
                     ref eventJoinPoint, EventData.JoinTo,
                     ref joinPoint, joinPointEntity);
             }
-            else if (JoinPointEntities.Contains(joinPoint.JoinedEntity))
+            else if (JoinPointEntities.Contains(joinPoint.JoinToPointEntity))
             {
-                LineJoinPoint jointToPoint = JoinPoints[JoinPointEntities.IndexOf<Entity>(joinPoint.JoinedEntity)];
+                LineJoinPoint jointToPoint = JoinPoints[JoinPointEntities.IndexOf<Entity>(joinPoint.JoinToPointEntity)];
                 LineJoinPoint.UnJoin(Ecb, JobIndex,
-                    ref jointToPoint, joinPoint.JoinedEntity,
+                    ref jointToPoint, joinPoint.JoinToPointEntity,
                     ref joinPoint, joinPointEntity
                 );
             }

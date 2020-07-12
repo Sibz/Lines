@@ -31,7 +31,7 @@ namespace Sibz.Lines.ECS.Systems
                 {
                     if (lineTool.LineBehaviour)
                     {
-                        lineTool.LineBehaviour.Complete();
+                        lineTool.LineBehaviour.OnComplete();
                     }
 
                     lineTool = LineTool.Default();

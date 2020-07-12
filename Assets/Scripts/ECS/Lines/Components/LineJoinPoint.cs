@@ -7,7 +7,7 @@ namespace Sibz.Lines.ECS.Components
     public struct LineJoinPoint : IComponentData
     {
         public Entity ParentEntity;
-        public Entity JoinedEntity;
+        public Entity JoinToPointEntity;
         public float3 Pivot;
         public float3 Direction;
         public float DistanceFromPivot;
@@ -38,8 +38,8 @@ namespace Sibz.Lines.ECS.Components
             ref LineJoinPoint fromData, Entity fromEntity,
             ref LineJoinPoint toData, Entity toEntity)
         {
-            fromData.JoinedEntity = Entity.Null;
-            toData.JoinedEntity = Entity.Null;
+            fromData.JoinToPointEntity = Entity.Null;
+            toData.JoinToPointEntity = Entity.Null;
             ecb.SetComponent(jobIndex, fromEntity, fromData);
             ecb.SetComponent(jobIndex, toEntity, toData);
         }
@@ -49,7 +49,7 @@ namespace Sibz.Lines.ECS.Components
             static void Join(Entity a1, Entity b1)
             {
                 LineJoinPoint jp = LineWorld.Em.GetComponentData<LineJoinPoint>(a1);
-                jp.JoinedEntity = b1;
+                jp.JoinToPointEntity = b1;
                 LineWorld.Em.SetComponentData(a1, jp);
             }
 
@@ -64,7 +64,7 @@ namespace Sibz.Lines.ECS.Components
         {
             void Join(Entity a1, ref LineJoinPoint data, Entity b1)
             {
-                data.JoinedEntity = b1;
+                data.JoinToPointEntity = b1;
                 ecb.SetComponent(jobIndex, a1, data);
             }
 

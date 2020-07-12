@@ -10,6 +10,11 @@ namespace Sibz.Lines.ECS.Behaviours
 
         public Entity LineEntity;
 
+        public void OnDirty()
+        {
+            EndNode1.UpdateFromEntity();
+            EndNode2.UpdateFromEntity();
+        }
         private void Destroy()
         {
             if (!LineWorld.World.IsCreated)
@@ -31,10 +36,10 @@ namespace Sibz.Lines.ECS.Behaviours
             }
         }
 
-        public void Complete()
+        public void OnComplete()
         {
-            EndNode1.GetComponent<Collider>().enabled = true;
-            EndNode2.GetComponent<Collider>().enabled = true;
+            EndNode1.OnComplete();
+            EndNode2.OnComplete();
         }
 
         private void OnDestroy()
