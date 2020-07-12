@@ -73,6 +73,14 @@ namespace Sibz.Lines.ECS.Systems
                     ecbConcurrent.SetComponent(entityInQueryIndex, lineToolEntity, lineTool);
                 }).Schedule(Dependency);
 
+            Dependency = new LineToolUpdateKnotsJob
+            {
+                LineTool = lineTool,
+                KnotData = EntityManager.GetBuffer<LineKnotData>(lineTool.Data.LineEntity),
+                //TODO: Load line profile
+                LineProfile = LineProfile.Default()
+            }.Schedule(Dependency);
+
             ecb.DestroyEntity(eventQuery);
             LineEndSimBufferSystem.Instance.AddJobHandleForProducer(Dependency);
         }

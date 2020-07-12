@@ -1,0 +1,48 @@
+﻿using Sibz.Lines.ECS.Components;
+using Sibz.Math;
+using Unity.Entities;
+using Unity.Jobs;
+using Unity.Mathematics;
+
+namespace Sibz.Lines.ECS.Jobs
+{
+    public struct LineToolUpdateKnotsJob : IJob
+    {
+
+        public LineTool LineTool;
+        public LineProfile LineProfile;
+        public DynamicBuffer<LineKnotData> KnotData;
+
+        public void Execute()
+        {
+            KnotData.Clear();
+
+            float3x3 b1 = LineTool.Data.Bezier1;
+            float3x3 b2 = LineTool.Data.Bezier2;
+
+            GetKnotsForBezier(b1);
+            if (!b1.c2.IsCloseTo(b2.c2, LineProfile.KnotSpacing))
+            {
+                GetKnotsForBezier(new float3x3(b1.c2, math.lerp(b1.c2, b2.c2, 0.5f), b2.c2));
+            }
+            GetKnotsForBezier(b2);
+        }
+
+        private void GetKnotsForBezier(float3x3 b, bool invert = false)
+        {
+
+            float lineDistance =
+                (math.distance(b.c0, b.c1) + math.distance(b.c1, b.c2) + math.distance(b.c0, b.c2)) / 2;
+
+            int numberOfKnots = (int) math.ceil(lineDistance / LineProfile.KnotSpacing);
+            for (int i = 0; i < numberOfKnots; i++)
+            {
+                float t = (float) i / (numberOfKnots - 1);
+                KnotData.Add(new LineKnotData
+                {
+                    Position = Bezier.Bezier.GetVectorOnCurve(b, invert ? 1f - t : t)
+                });
+            }
+        }
+    }
+}
