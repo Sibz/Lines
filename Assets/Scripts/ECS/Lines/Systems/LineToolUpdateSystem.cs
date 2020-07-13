@@ -13,30 +13,20 @@ namespace Sibz.Lines.ECS.Systems
     public class LineToolUpdateSystem : SystemBase
     {
         private EntityQuery eventQuery;
-        private EntityQuery changeModEventQuery;
         private EntityQuery updateEventQuery;
         private EntityQuery joinPointQuery;
         private EntityQuery lineQuery;
-        private EntityQuery updateQuery;
 
         protected override void OnCreate()
         {
-            changeModEventQuery = GetEntityQuery(typeof(LineToolModChangeEvent));
             updateEventQuery = GetEntityQuery(typeof(NewLineUpdateEvent));
             // TODO: Update only editable join points
             joinPointQuery = GetEntityQuery(typeof(LineJoinPoint));
             // TODO: Remove NewLine on completion
             lineQuery = GetEntityQuery(typeof(Line), typeof(NewLine));
-            updateQuery = GetEntityQuery(new EntityQueryDesc
-            {
-                Any = new[]
-                {
-                    ComponentType.ReadOnly<NewLineUpdateEvent>(),
-                    ComponentType.ReadOnly<LineToolModChangeEvent>()
-                }
-            });
+
             RequireSingletonForUpdate<LineTool>();
-            RequireForUpdate(updateQuery);
+            RequireForUpdate(updateEventQuery);
 
         }
 
@@ -49,7 +39,6 @@ namespace Sibz.Lines.ECS.Systems
 
             if (lineTool.State != LineToolState.Editing)
             {
-                EntityManager.DestroyEntity(changeModEventQuery);
                 return;
             }
 
@@ -66,32 +55,6 @@ namespace Sibz.Lines.ECS.Systems
 
 
             Dependency = JobHandle.CombineDependencies(Dependency, jh1, jh2);
-
-            // TODO: This should be in own system
-            Entities
-                .WithStructuralChanges()
-                .ForEach((Entity entity, int entityInQueryIndex, ref LineToolModChangeEvent evt) =>
-            {
-                static void Mod(ref LineToolData.ToolModifiers.EndMods  l,
-                    LineToolData.ToolModifiers.EndMods r)
-                {
-                    l.Size = math.max(0.25f, l.Size+ r.Size);
-                    l.Ratio = math.clamp(l.Ratio + r.Ratio, 0.5f, 1.5f);
-                    l.Height += r.Height;
-                    l.InnerHeight += r.InnerHeight;
-                    l.InnerHeightDistanceFromEnd += l.InnerHeightDistanceFromEnd;
-                }
-
-                Mod(ref lineTool.Data.Modifiers.From, evt.ModifierChangeValues.From);
-                Mod(ref lineTool.Data.Modifiers.To, evt.ModifierChangeValues.To);
-
-                EntityManager.SetComponentData(lineToolEntity, lineTool);
-                var line = EntityManager.GetComponentData<Line>(lineTool.Data.LineEntity);
-                var joinPoint = EntityManager.GetComponentData<LineJoinPoint>(line.JoinPointB);
-                NewLineUpdateEvent.New(line.JoinPointB, joinPoint.Pivot, joinPoint.JoinToPointEntity);
-
-            }).WithoutBurst().Run();
-            EntityManager.DestroyEntity(changeModEventQuery);
 
             NativeArray<LineTool> toolData = new NativeArray<LineTool>(1, Allocator.TempJob);
             toolData[0] = lineTool;
