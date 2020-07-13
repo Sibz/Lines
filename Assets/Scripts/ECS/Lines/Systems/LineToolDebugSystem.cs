@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace Sibz.Lines.ECS.Systems
 {
+    [UpdateInGroup(typeof(LineWorldPresGroup), OrderLast = true)]
     public class LineToolDebugSystem : SystemBase
     {
         protected override void OnCreate()
