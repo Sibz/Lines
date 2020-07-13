@@ -135,22 +135,46 @@ namespace Sibz.Lines
 
             if (Input.GetKeyUp(KeyCode.Z))
             {
-                //lineTool.Ratio1 += 0.05f;
+                LineToolModChangeEvent.New(new LineToolData.ToolModifiers
+                {
+                    From =
+                    {
+                        Ratio = 0.05f
+                    }
+                });
             }
 
             if (Input.GetKeyUp(KeyCode.X))
             {
-                //lineTool.Ratio1 -= 0.05f;
+                LineToolModChangeEvent.New(new LineToolData.ToolModifiers
+                {
+                    From =
+                    {
+                        Ratio = -0.05f
+                    }
+                });
             }
 
             if (Input.GetKeyUp(KeyCode.C))
             {
-                //lineTool.Ratio2 += 0.05f;
+                LineToolModChangeEvent.New(new LineToolData.ToolModifiers
+                {
+                    To =
+                    {
+                        Ratio = 0.05f
+                    }
+                });
             }
 
             if (Input.GetKeyUp(KeyCode.V))
             {
-                //lineTool.Ratio2 -= 0.05f;
+                LineToolModChangeEvent.New(new LineToolData.ToolModifiers
+                {
+                    To =
+                    {
+                        Ratio = -0.05f
+                    }
+                });
             }
 
             if (Input.GetKeyUp(KeyCode.Tab))
