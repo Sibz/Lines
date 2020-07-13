@@ -22,12 +22,13 @@ namespace Sibz.Lines.ECS.Jobs
             float3x3 b2 = ToolData[0].Data.Bezier2;
 
             GetKnotsForBezier(b1);
+
             if (!b1.c2.IsCloseTo(b2.c2, LineProfile.KnotSpacing))
             {
                 GetKnotsForBezier(new float3x3(b1.c2, math.lerp(b1.c2, b2.c2, 0.5f), b2.c2));
             }
 
-            GetKnotsForBezier(b2);
+            GetKnotsForBezier(b2, true);
             DidChange[0] = true;
         }
 
