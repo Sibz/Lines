@@ -37,7 +37,7 @@ namespace Sibz.Lines.ECS.Jobs
             float lineDistance =
                 (math.distance(b.c0, b.c1) + math.distance(b.c1, b.c2) + math.distance(b.c0, b.c2)) / 2;
 
-            int numberOfKnots = (int) math.ceil(lineDistance / LineProfile.KnotSpacing);
+            int numberOfKnots = (int) math.max(2, math.ceil(lineDistance / LineProfile.KnotSpacing));
             for (int i = 0; i < numberOfKnots; i++)
             {
                 float t = (float) i / (numberOfKnots - 1);
