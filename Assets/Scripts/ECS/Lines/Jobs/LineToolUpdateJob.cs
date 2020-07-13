@@ -27,8 +27,10 @@ namespace Sibz.Lines.ECS.Jobs
 
             Line = Lines[LineEntities.IndexOf<Entity>(lineToolIn.Data.LineEntity)];
 
-            // TODO: Add no data update event to skip this step
-            UpdateJoinPoint();
+            if (EventData.HasData)
+            {
+                UpdateJoinPoint();
+            }
 
             GenerateBezier();
 

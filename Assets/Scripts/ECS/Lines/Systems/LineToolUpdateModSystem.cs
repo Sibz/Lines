@@ -37,15 +37,10 @@ namespace Sibz.Lines.ECS.Systems
                     Mod(ref lineTool.Data.Modifiers.To, evt.ModifierChangeValues.To);
 
                     SetSingleton(lineTool);
-                    Line line = EntityManager.GetComponentData<Line>(lineTool.Data.LineEntity);
-                    LineJoinPoint joinPoint = EntityManager.GetComponentData<LineJoinPoint>(line.JoinPointB);
-                    NewLineUpdateEvent.New(line.JoinPointB, joinPoint.Pivot, joinPoint.JoinToPointEntity);
-
+                    NewLineUpdateEvent.New();
                 }).WithoutBurst().Run();
 
             EntityManager.DestroyEntity(changeModEventQuery);
-
-
         }
     }
 }

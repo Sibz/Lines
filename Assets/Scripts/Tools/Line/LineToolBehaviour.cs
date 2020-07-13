@@ -24,7 +24,6 @@ namespace Sibz.Lines
 
         public GameObject Capsule;
 
-        // private LineTool lineTool;
         private SnapNotifierBehaviour snapNotifier;
 
         private Entity lineToolEntity;
@@ -51,7 +50,6 @@ namespace Sibz.Lines
                 throw new NullReferenceException("Must set LinePrefab on Line1Tool!");
             }
 
-            //lineTool = new LineTool(gameObject, LineBehaviourPrefab.gameObject, this);
             lineToolEntity = LineWorld.Em.Exists(lineToolEntity) ? lineToolEntity : LineTool.New();
             if (LineWorld.Em.HasComponent<Disabled>(lineToolEntity))
             {
@@ -73,8 +71,6 @@ namespace Sibz.Lines
                 LineWorld.Em.SetComponentData(lineToolEntity, LineTool.Default());
                 LineWorld.Em.AddComponent<Disabled>(lineToolEntity);
             }
-
-            //lineTool.Cancel();
         }
 
         public void Update()
@@ -120,7 +116,6 @@ namespace Sibz.Lines
             if (Input.GetMouseButtonUp(0))
             {
                 draggingNewLine = false;
-                //lineTool.EndLine();
             }
 
             if (Input.GetKey(KeyCode.LeftControl) && Input.mouseScrollDelta != Vector2.zero)
@@ -189,10 +184,10 @@ namespace Sibz.Lines
                 });
             }
 
-            if (Input.GetKeyUp(KeyCode.Tab))
+            /*if (Input.GetKeyUp(KeyCode.Tab))
             {
                 //lineTool.ToggleToolMode();
-            }
+            }*/
         }
     }
 }
