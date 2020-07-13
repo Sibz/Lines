@@ -44,7 +44,7 @@ namespace Sibz.Lines.ECS.Jobs
                 float3 p = Bezier.Bezier.GetVectorOnCurve(b, invert ? 1f - t : t);
                 // Avoid duplicates
                 if (KnotData.Length == 0 ||
-                    !p.IsCloseTo(KnotData[KnotData.Length - 1].Position, LineProfile.KnotSpacing / 3))
+                    !p.IsCloseTo(KnotData[KnotData.Length - 1].Position, 0.01f))
                 {
                     KnotData.Add(new LineKnotData
                     {
