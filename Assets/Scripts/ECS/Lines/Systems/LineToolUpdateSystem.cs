@@ -44,10 +44,10 @@ namespace Sibz.Lines.ECS.Systems
         {
             Entity lineToolEntity = GetSingletonEntity<LineTool>();
 
-            NativeArray<LineTool> toolData = new NativeArray<LineTool>(1, Allocator.TempJob);
-            LineTool toolDataReadonly = toolData[0] =  GetSingleton<LineTool>();
 
-            if (toolData[0].State != LineToolState.Editing)
+            LineTool lineTool = GetSingleton<LineTool>();
+
+            if (lineTool.State != LineToolState.Editing)
             {
                 EntityManager.DestroyEntity(changeModEventQuery);
                 return;
@@ -66,9 +66,10 @@ namespace Sibz.Lines.ECS.Systems
 
 
             Dependency = JobHandle.CombineDependencies(Dependency, jh1, jh2);
-            var changeEventEcb = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent();
 
-            Dependency = Entities
+            // TODO: This should be in own system
+            Entities
+                .WithStructuralChanges()
                 .ForEach((Entity entity, int entityInQueryIndex, ref LineToolModChangeEvent evt) =>
             {
                 static void Mod(ref LineToolData.ToolModifiers.EndMods  l,
@@ -81,15 +82,19 @@ namespace Sibz.Lines.ECS.Systems
                     l.InnerHeightDistanceFromEnd += l.InnerHeightDistanceFromEnd;
                 }
 
-                LineTool lt = toolData[0];
-                Mod(ref lt.Data.Modifiers.From, evt.ModifierChangeValues.From);
-                Mod(ref lt.Data.Modifiers.To, evt.ModifierChangeValues.To);
-                toolData[0] = lt;
+                Mod(ref lineTool.Data.Modifiers.From, evt.ModifierChangeValues.From);
+                Mod(ref lineTool.Data.Modifiers.To, evt.ModifierChangeValues.To);
 
-                changeEventEcb.SetComponent(entityInQueryIndex, lineToolEntity, toolData[0]);
-                changeEventEcb.DestroyEntity(entityInQueryIndex, entity);
-            }).Schedule(Dependency);
-            ecb.DestroyEntity(changeModEventQuery);
+                EntityManager.SetComponentData(lineToolEntity, lineTool);
+                var line = EntityManager.GetComponentData<Line>(lineTool.Data.LineEntity);
+                var joinPoint = EntityManager.GetComponentData<LineJoinPoint>(line.JoinPointB);
+                NewLineUpdateEvent.New(line.JoinPointB, joinPoint.Pivot, joinPoint.JoinToPointEntity);
+
+            }).WithoutBurst().Run();
+            EntityManager.DestroyEntity(changeModEventQuery);
+
+            NativeArray<LineTool> toolData = new NativeArray<LineTool>(1, Allocator.TempJob);
+            toolData[0] = lineTool;
 
             Dependency = Entities
                 .WithStoreEntityQueryInField(ref eventQuery)
@@ -119,7 +124,7 @@ namespace Sibz.Lines.ECS.Systems
             Dependency = new LineToolUpdateKnotsJob
             {
                 ToolData = toolData,
-                KnotData = EntityManager.GetBuffer<LineKnotData>(toolDataReadonly.Data.LineEntity),
+                KnotData = EntityManager.GetBuffer<LineKnotData>(lineTool.Data.LineEntity),
                 //TODO: Load line profile
                 LineProfile = LineProfile.Default(),
                 DidChange = didChange
@@ -130,7 +135,7 @@ namespace Sibz.Lines.ECS.Systems
                 DidChange = didChange,
                 JobIndex = eventQuery.CalculateEntityCount() + 1,
                 Ecb = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
-                LineEntity = toolDataReadonly.Data.LineEntity,
+                LineEntity = lineTool.Data.LineEntity,
                 //TODO: Load mesh builder from line profile
                 MeshBuilderPrefab = LineDefaultMeshBuilderSystem.Prefab
             }.Schedule(Dependency);
