@@ -7,6 +7,7 @@ using Unity.Mathematics;
 
 namespace Sibz.Lines.ECS.Systems
 {
+    [UpdateInGroup(typeof(LineWorldPresGroup), OrderFirst = true)]
     public class LineDefaultMeshBuilderSystem : SystemBase
     {
         private EntityQuery meshJobQuery;

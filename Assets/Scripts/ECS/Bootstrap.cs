@@ -19,6 +19,9 @@ namespace Sibz.Lines.ECS
             if (!UpdateSystem<Update, LineWorldSimGroup>(ref loop))
                 throw new Exception("Unable to set player loop");
 
+            if (!UpdateSystem<PreLateUpdate, LineWorldPresGroup>(ref loop))
+                throw new Exception("Unable to set player loop");
+
             PlayerLoop.SetPlayerLoop(loop);
 
             LineWorld.World.Initialise();

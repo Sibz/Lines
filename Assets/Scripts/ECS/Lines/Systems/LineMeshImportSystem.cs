@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace Sibz.Lines.ECS.Systems
 {
+    [UpdateInGroup(typeof(LineWorldPresGroup))]
     public class LineMeshImportSystem : SystemBase
     {
         private EntityQuery query;
