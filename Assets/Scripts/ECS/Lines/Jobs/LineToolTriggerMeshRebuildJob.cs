@@ -29,6 +29,7 @@ namespace Sibz.Lines.ECS.Jobs
 
             Entity meshBuildTriggerEntity = Ecb.Instantiate(JobIndex, MeshBuilderPrefab);
             Ecb.SetComponent(JobIndex, meshBuildTriggerEntity, buildData);
+            Ecb.AddComponent<MeshUpdated>(JobIndex, LineEntity);
 
         }
     }

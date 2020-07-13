@@ -505,6 +505,19 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+--- !u!1 &1446514695 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8626717897034771482, guid: d167ed8f9449d9e4db2951d7fe0ef9e6, type: 3}
+  m_PrefabInstance: {fileID: 677234623}
+  m_PrefabAsset: {fileID: 0}
+--- !u!33 &1446514696
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1446514695}
+  m_Mesh: {fileID: 0}
 --- !u!1 &1807633739
 GameObject:
   m_ObjectHideFlags: 0

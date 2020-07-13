@@ -1,14 +1,25 @@
-﻿using Unity.Entities;
+﻿using System;
+using Unity.Entities;
 using UnityEngine;
 
 namespace Sibz.Lines.ECS.Behaviours
 {
+    [RequireComponent(typeof(MeshRenderer), typeof(MeshFilter))]
     public class EcsLineBehaviour : MonoBehaviour
     {
         public EcsLineNodeBehaviour EndNode1;
         public EcsLineNodeBehaviour EndNode2;
 
+        public MeshRenderer MeshRenderer { get; private set; }
+        public MeshFilter MeshFilter { get; private set; }
+
         public Entity LineEntity;
+
+        private void OnEnable()
+        {
+            MeshRenderer = GetComponent<MeshRenderer>();
+            MeshFilter = GetComponent<MeshFilter>();
+        }
 
         public void OnDirty()
         {
