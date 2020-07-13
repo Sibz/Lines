@@ -13,8 +13,8 @@ namespace Sibz.Lines.ECS.Jobs
         public EntityCommandBuffer.Concurrent Ecb;
         public int JobIndex;
         public Entity LineEntity;
-        public LineProfile LineProfile;
-        
+        public Entity MeshBuilderPrefab;
+
         public void Execute()
         {
             if (!DidChange[0])
@@ -27,7 +27,7 @@ namespace Sibz.Lines.ECS.Jobs
                 LineEntity = LineEntity
             };
 
-            Entity meshBuildTriggerEntity = Ecb.Instantiate(JobIndex, LineProfile.MeshBuildPrefab);
+            Entity meshBuildTriggerEntity = Ecb.Instantiate(JobIndex, MeshBuilderPrefab);
             Ecb.SetComponent(JobIndex, meshBuildTriggerEntity, buildData);
 
         }

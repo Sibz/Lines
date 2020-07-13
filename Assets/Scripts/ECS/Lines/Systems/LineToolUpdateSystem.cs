@@ -17,7 +17,6 @@ namespace Sibz.Lines.ECS.Systems
 
         protected override void OnCreate()
         {
-
             updateEventQuery = GetEntityQuery(typeof(NewLineUpdateEvent));
             // TODO: Update only editable join points
             joinPointQuery = GetEntityQuery(typeof(LineJoinPoint));
@@ -69,7 +68,7 @@ namespace Sibz.Lines.ECS.Systems
                         JobIndex = entityInQueryIndex,
                         JoinPointEntities = joinPointEntities,
                         JoinPoints = joinPoints,
-                        Lines  = lines,
+                        Lines = lines,
                         LineEntities = lineEntities
                     }.Execute(ref lineTool);
                     toolData[0] = lineTool;
@@ -91,11 +90,10 @@ namespace Sibz.Lines.ECS.Systems
             {
                 DidChange = didChange,
                 JobIndex = eventQuery.CalculateEntityCount() + 1,
-                Ecb = ecbConcurrent,
+                Ecb = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
                 LineEntity = lineTool.Data.LineEntity,
-                //TODO: Load line profile
-                LineProfile = LineProfile.Default()
-
+                //TODO: Load mesh builder from line profile
+                MeshBuilderPrefab = LineDefaultMeshBuilderSystem.Prefab
             }.Schedule(Dependency);
 
             ecb.DestroyEntity(eventQuery);

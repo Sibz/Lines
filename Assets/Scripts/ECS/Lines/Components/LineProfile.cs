@@ -19,7 +19,7 @@ namespace Sibz.Lines.ECS.Components
             {
                 Width = 1f,
                 KnotSpacing = 0.25f,
-                MeshBuildPrefab = DefaultMeshBuilder.Prefab
+                MeshBuildPrefab = Entity.Null
             };
         }
     }
