@@ -6,6 +6,7 @@ using Unity.Entities;
 
 namespace Sibz.Lines.ECS.Systems
 {
+    [UpdateInGroup(typeof(LineWorldSimGroup), OrderFirst = true)]
     public class LineToolNewLineSystem : SystemBase
     {
         private EntityQuery query;

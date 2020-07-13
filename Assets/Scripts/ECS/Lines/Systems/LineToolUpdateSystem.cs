@@ -21,12 +21,11 @@ namespace Sibz.Lines.ECS.Systems
         {
             updateEventQuery = GetEntityQuery(typeof(NewLineUpdateEvent));
             // TODO: Update only editable join points
-            joinPointQuery = GetEntityQuery(typeof(LineJoinPoint));
+            joinPointQuery = GetEntityQuery(typeof(LineJoinPoint), typeof(JoinEditable));
             lineQuery = GetEntityQuery(typeof(Line), typeof(NewLine));
 
             RequireSingletonForUpdate<LineTool>();
             RequireForUpdate(updateEventQuery);
-
         }
 
         protected override void OnUpdate()
@@ -47,6 +46,7 @@ namespace Sibz.Lines.ECS.Systems
                 joinPointQuery.ToComponentDataArrayAsync<LineJoinPoint>(Allocator.TempJob, out JobHandle jh2);
 
             Dependency = JobHandle.CombineDependencies(Dependency, jh1, jh2);
+            Dependency.Complete();
 
             var lineEntities = lineQuery.ToEntityArrayAsync(Allocator.TempJob, out jh1);
             var lines = lineQuery.ToComponentDataArrayAsync<Line>(Allocator.TempJob, out jh2);
@@ -56,6 +56,54 @@ namespace Sibz.Lines.ECS.Systems
 
             NativeArray<LineTool> toolData = new NativeArray<LineTool>(1, Allocator.TempJob);
             toolData[0] = lineTool;
+
+            NativeList<Entity> newJpe = new NativeList<Entity>(Allocator.TempJob);
+            NativeList<LineJoinPoint> newJp = new NativeList<LineJoinPoint>(Allocator.TempJob);
+            newJpe.AddRange(joinPointEntities);
+
+            newJp.AddRange(joinPoints);
+            joinPointEntities.Dispose();
+            joinPoints.Dispose();
+
+            // TODO: Move into a job GetJoinPoints
+            // If get any joint joinPoints plus the one we are joining to
+            // This is a little bit of work on the main thread however will
+            // save when there are many join points
+            Entities
+                .ForEach((Entity eventEntity, int entityInQueryIndex, ref NewLineUpdateEvent lineUpdateEvent) =>
+                {
+                    if (EntityManager.Exists(lineUpdateEvent.JoinTo))
+                    {
+                        newJpe.Add(lineUpdateEvent.JoinTo);
+                        newJp.Add(EntityManager.GetComponentData<LineJoinPoint>(lineUpdateEvent.JoinTo));
+                    }
+
+                    if (!EntityManager.Exists(lineUpdateEvent.JoinPoint))
+                    {
+                        return;
+                    }
+
+                    var line = EntityManager.GetComponentData<Line>(
+                        EntityManager.GetComponentData<LineJoinPoint>(lineUpdateEvent.JoinPoint).ParentEntity);
+
+                    var jp = EntityManager.GetComponentData<LineJoinPoint>(line.JoinPointA);
+                    if (EntityManager.Exists(jp.JoinToPointEntity))
+                    {
+                        newJpe.Add(jp.JoinToPointEntity);
+                        newJp.Add(EntityManager.GetComponentData<LineJoinPoint>(jp.JoinToPointEntity));
+                    }
+
+                    jp = EntityManager.GetComponentData<LineJoinPoint>(line.JoinPointB);
+                    if (EntityManager.Exists(jp.JoinToPointEntity))
+                    {
+                        newJpe.Add(jp.JoinToPointEntity);
+                        newJp.Add(EntityManager.GetComponentData<LineJoinPoint>(jp.JoinToPointEntity));
+                    }
+                }).WithoutBurst().Run();
+            joinPointEntities = newJpe.ToArray(Allocator.TempJob);
+            joinPoints = newJp.ToArray(Allocator.TempJob);
+            newJpe.Dispose();
+            newJp.Dispose();
 
             Dependency = Entities
                 .WithStoreEntityQueryInField(ref eventQuery)

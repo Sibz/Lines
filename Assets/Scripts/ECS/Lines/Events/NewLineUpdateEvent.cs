@@ -24,9 +24,15 @@ namespace Sibz.Lines.ECS.Events
             return entity;
         }
 
-        public static Entity New()
+        public static Entity New(Entity lineEntity)
         {
-            return LineWorld.Em.CreateEntity(typeof(NewLineUpdateEvent));
+            var ent =  LineWorld.Em.CreateEntity(typeof(NewLineUpdateEvent));
+            var line = LineWorld.Em.GetComponentData<Line>(lineEntity);
+            LineWorld.Em.SetComponentData(ent, new NewLineUpdateEvent
+            {
+                JoinPoint = line.JoinPointA
+            });
+            return ent;
         }
     }
 }

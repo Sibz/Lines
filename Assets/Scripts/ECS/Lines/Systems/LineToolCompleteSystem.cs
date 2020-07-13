@@ -34,7 +34,10 @@ namespace Sibz.Lines.ECS.Systems
                         lineTool.LineBehaviour.OnComplete();
                     }
 
+                    var line = EntityManager.GetComponentData<Line>(lineTool.Data.LineEntity);
                     EntityManager.RemoveComponent<NewLine>(lineTool.Data.LineEntity);
+                    EntityManager.RemoveComponent<JoinEditable>(line.JoinPointA);
+                    EntityManager.RemoveComponent<JoinEditable>(line.JoinPointB);
 
                     lineTool = LineTool.Default();
                     SetSingleton(lineTool);

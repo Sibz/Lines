@@ -126,7 +126,7 @@ namespace Sibz.Lines
 				UnityEditor.EditorApplication.isPlaying = false;
 				#endif
             }
-            // Hide and lock cursor when right mouse button pressed
+            /*// Hide and lock cursor when right mouse button pressed
             if (Input.GetMouseButtonDown(2))
             {
                 Cursor.lockState = CursorLockMode.Locked;
@@ -137,7 +137,7 @@ namespace Sibz.Lines
             {
                 Cursor.visible = true;
                 Cursor.lockState = CursorLockMode.None;
-            }
+            }*/
 
             // Rotation
             if (Input.GetMouseButton(2))

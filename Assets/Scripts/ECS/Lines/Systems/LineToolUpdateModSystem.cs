@@ -37,7 +37,7 @@ namespace Sibz.Lines.ECS.Systems
                     Mod(ref lineTool.Data.Modifiers.To, evt.ModifierChangeValues.To);
 
                     SetSingleton(lineTool);
-                    NewLineUpdateEvent.New();
+                    NewLineUpdateEvent.New(lineTool.Data.LineEntity);
                 }).WithoutBurst().Run();
 
             EntityManager.DestroyEntity(changeModEventQuery);

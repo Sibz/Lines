@@ -33,6 +33,8 @@ namespace Sibz.Lines.ECS.Behaviours
                 return;
             }
 
+            // Use a destroy event so line and associated entities are removed
+            // and any joins can be unjoint
             if (LineWorld.Em.Exists(EndNode1.JoinPoint))
             {
                 LineWorld.Em.DestroyEntity(EndNode1.JoinPoint);
