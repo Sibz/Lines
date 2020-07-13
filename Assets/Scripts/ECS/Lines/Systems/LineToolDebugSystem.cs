@@ -30,9 +30,23 @@ namespace Sibz.Lines.ECS.Systems
                 for (int i = 0; i < buff.Length; i++)
                 {
                     Vector3 p = buff[i].Position;
-                    Debug.DrawLine(p, p + Vector3.up * 0.5f, Color.yellow);
+                    Debug.DrawLine(p, p + Vector3.up * (float)i / (buff.Length - 1), Color.yellow);
+                    if (i != buff.Length - 1)
+                    {
+                        Color color = new Color
+                        {
+                            a = 1,
+                            b = math.lerp(1,0, (float)i / (buff.Length - 1)),
+                            g = math.lerp(1,0, (float)i / (buff.Length - 1)),
+                            r = math.lerp(0,1, (float)i / (buff.Length - 1))
+                        };
+                        Debug.DrawLine(p + Vector3.up * (float)i / (buff.Length - 1), (Vector3)buff[i+1].Position + Vector3.up * (float)i / (buff.Length - 1) , color);
+                    }
+
                 }
             }
+
+
         }
     }
 }
