@@ -41,10 +41,16 @@ namespace Sibz.Lines.ECS.Jobs
             for (int i = 0; i < numberOfKnots; i++)
             {
                 float t = (float) i / (numberOfKnots - 1);
-                KnotData.Add(new LineKnotData
+                float3 p = Bezier.Bezier.GetVectorOnCurve(b, invert ? 1f - t : t);
+                // Avoid duplicates
+                if (KnotData.Length == 0 ||
+                    !p.IsCloseTo(KnotData[KnotData.Length - 1].Position, LineProfile.KnotSpacing / 3))
                 {
-                    Position = Bezier.Bezier.GetVectorOnCurve(b, invert ? 1f - t : t)
-                });
+                    KnotData.Add(new LineKnotData
+                    {
+                        Position = p
+                    });
+                }
             }
         }
     }
