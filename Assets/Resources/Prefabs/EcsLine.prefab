@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 7034758992166420311}
   - component: {fileID: 3282094981747088808}
   - component: {fileID: 1912061479590631499}
+  - component: {fileID: -555763731756699167}
   m_Layer: 0
   m_Name: EcsLine
   m_TagString: Untagged
@@ -89,6 +90,14 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &-555763731756699167
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8626717897034771482}
+  m_Mesh: {fileID: 0}
 --- !u!1001 &566094696558895440
 PrefabInstance:
   m_ObjectHideFlags: 0
