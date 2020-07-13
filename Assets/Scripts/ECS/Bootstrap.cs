@@ -69,7 +69,6 @@ namespace Sibz.Lines.ECS
                 object instance = Activator.CreateInstance(type, LineWorld.World.GetOrCreateSystem<T>());
                 list[def.subSystemList.Length].updateDelegate =  (PlayerLoopSystem.UpdateFunction) type
                     .GetMethod("TriggerUpdate")?.CreateDelegate(typeof(PlayerLoopSystem.UpdateFunction), instance);
-                    ;
             }
             def.subSystemList = list;
         }

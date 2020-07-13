@@ -2,7 +2,7 @@
 
 namespace Sibz.Lines.ECS.Systems
 {
-    public class LineWorldInitGroup : PresentationSystemGroup
+    public class LineWorldInitGroup : InitializationSystemGroup
     {
 
     }
