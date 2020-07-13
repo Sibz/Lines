@@ -76,12 +76,26 @@ namespace Sibz.Lines.ECS.Systems
                     ecbConcurrent.SetComponent(entityInQueryIndex, lineToolEntity, lineTool);
                 }).Schedule(Dependency);
 
+            NativeArray<bool> didChange = new NativeArray<bool>(1, Allocator.TempJob);
+
             Dependency = new LineToolUpdateKnotsJob
             {
                 ToolData = toolData,
                 KnotData = EntityManager.GetBuffer<LineKnotData>(lineTool.Data.LineEntity),
                 //TODO: Load line profile
+                LineProfile = LineProfile.Default(),
+                DidChange = didChange
+            }.Schedule(Dependency);
+
+            Dependency = new LineToolTriggerMeshRebuildJob
+            {
+                DidChange = didChange,
+                JobIndex = eventQuery.CalculateEntityCount() + 1,
+                Ecb = ecbConcurrent,
+                LineEntity = lineTool.Data.LineEntity,
+                //TODO: Load line profile
                 LineProfile = LineProfile.Default()
+
             }.Schedule(Dependency);
 
             ecb.DestroyEntity(eventQuery);

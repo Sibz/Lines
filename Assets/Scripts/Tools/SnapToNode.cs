@@ -13,9 +13,7 @@ public class SnapToNode : MonoBehaviour
     public GameObject Tool;
 
     private SnapNotifierBehaviour snapNotifier;
-    /*private bool isSnapped;
-    private GameObject snappedTo;*/
-
+    
     private readonly List<GameObject> targets = new List<GameObject>();
 
     private void Start()
@@ -105,15 +103,6 @@ public class SnapToNode : MonoBehaviour
         targetMoveToCursorComponent.enabled = false;
         thisMoveToCursorComponent.enabled = true;
     }
-
-    /*private void OnTriggerStay(Collider other)
-    {
-        if (isSnapped && !Input.GetKeyDown(KeyCode.LeftShift))
-        {
-            return;
-        }
-        OnTriggerExit(other);
-    }*/
 
     private void OnTriggerExit(Collider other)
     {

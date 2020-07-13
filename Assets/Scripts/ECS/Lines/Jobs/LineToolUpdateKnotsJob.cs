@@ -10,6 +10,7 @@ namespace Sibz.Lines.ECS.Jobs
     public struct LineToolUpdateKnotsJob : IJob
     {
         [ReadOnly] [DeallocateOnJobCompletion] public NativeArray<LineTool> ToolData;
+        [ReadOnly] public NativeArray<bool> DidChange;
         public LineProfile LineProfile;
         public DynamicBuffer<LineKnotData> KnotData;
 
@@ -27,6 +28,7 @@ namespace Sibz.Lines.ECS.Jobs
             }
 
             GetKnotsForBezier(b2);
+            DidChange[0] = true;
         }
 
         private void GetKnotsForBezier(float3x3 b, bool invert = false)
