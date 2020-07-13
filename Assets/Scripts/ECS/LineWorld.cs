@@ -31,13 +31,14 @@ namespace Sibz.Lines.ECS
                 if (attr != null && attr.GroupType == typeof(LineWorldPresGroup))
                 {
                     PresGroup.AddSystemToUpdateList(World.GetOrCreateSystem(type));
+                }else if (attr != null && attr.GroupType == typeof(LineWorldInitGroup))
+                {
+                    PresGroup.AddSystemToUpdateList(World.GetOrCreateSystem(type));
                 }
                 else
                 {
                     SimGroup.AddSystemToUpdateList(World.GetOrCreateSystem(type));
                 }
-
-
             }
         }
     }

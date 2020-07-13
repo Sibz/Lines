@@ -17,10 +17,13 @@ namespace Sibz.Lines.ECS
             var loop = PlayerLoop.GetDefaultPlayerLoop();
 
             if (!UpdateSystem<Update, LineWorldSimGroup>(ref loop))
-                throw new Exception("Unable to set player loop");
+                throw new Exception("Unable to set LineWorldSimGroup player loop");
 
             if (!UpdateSystem<PreLateUpdate, LineWorldPresGroup>(ref loop))
-                throw new Exception("Unable to set player loop");
+                throw new Exception("Unable to set LineWorldPresGroup player loop");
+
+            if (!UpdateSystem<Initialization, LineWorldInitGroup>(ref loop))
+                throw new Exception("Unable to set LineWorldInitGroup player loop");
 
             PlayerLoop.SetPlayerLoop(loop);
 
