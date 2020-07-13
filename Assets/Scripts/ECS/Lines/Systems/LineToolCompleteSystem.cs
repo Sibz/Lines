@@ -34,8 +34,11 @@ namespace Sibz.Lines.ECS.Systems
                         lineTool.LineBehaviour.OnComplete();
                     }
 
+                    EntityManager.RemoveComponent<NewLine>(lineTool.Data.LineEntity);
+
                     lineTool = LineTool.Default();
                     SetSingleton(lineTool);
+
 
                 }).WithoutBurst().Run();
 

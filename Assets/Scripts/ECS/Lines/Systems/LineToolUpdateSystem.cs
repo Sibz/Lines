@@ -22,7 +22,6 @@ namespace Sibz.Lines.ECS.Systems
             updateEventQuery = GetEntityQuery(typeof(NewLineUpdateEvent));
             // TODO: Update only editable join points
             joinPointQuery = GetEntityQuery(typeof(LineJoinPoint));
-            // TODO: Remove NewLine on completion
             lineQuery = GetEntityQuery(typeof(Line), typeof(NewLine));
 
             RequireSingletonForUpdate<LineTool>();
@@ -33,7 +32,6 @@ namespace Sibz.Lines.ECS.Systems
         protected override void OnUpdate()
         {
             Entity lineToolEntity = GetSingletonEntity<LineTool>();
-
 
             LineTool lineTool = GetSingleton<LineTool>();
 
