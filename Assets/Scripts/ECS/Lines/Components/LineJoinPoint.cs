@@ -43,6 +43,15 @@ namespace Sibz.Lines.ECS.Components
             ecb.SetComponent(jobIndex, fromEntity, fromData);
             ecb.SetComponent(jobIndex, toEntity, toData);
         }
+        public static void UnJoin(EntityCommandBuffer ecb,
+            ref LineJoinPoint fromData, Entity fromEntity,
+            ref LineJoinPoint toData, Entity toEntity)
+        {
+            fromData.JoinToPointEntity = Entity.Null;
+            toData.JoinToPointEntity = Entity.Null;
+            ecb.SetComponent(fromEntity, fromData);
+            ecb.SetComponent(toEntity, toData);
+        }
 
         public static void Join(Entity a, Entity b)
         {
@@ -66,6 +75,21 @@ namespace Sibz.Lines.ECS.Components
             {
                 data.JoinToPointEntity = b1;
                 ecb.SetComponent(jobIndex, a1, data);
+            }
+
+            Join(fromEntity, ref fromData, toEntity);
+            Join(toEntity, ref toData, fromEntity);
+        }
+
+        public static void Join(
+            EntityCommandBuffer ecb,
+            ref LineJoinPoint fromData, Entity fromEntity,
+            ref LineJoinPoint toData, Entity toEntity)
+        {
+            void Join(Entity a1, ref LineJoinPoint data, Entity b1)
+            {
+                data.JoinToPointEntity = b1;
+                ecb.SetComponent(a1, data);
             }
 
             Join(fromEntity, ref fromData, toEntity);
