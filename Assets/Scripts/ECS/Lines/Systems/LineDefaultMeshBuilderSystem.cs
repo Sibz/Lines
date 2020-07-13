@@ -51,7 +51,12 @@ namespace Sibz.Lines.ECS.Systems
                 .WithDeallocateOnJobCompletion(joinPoints)
                 .ForEach((Entity entity, int entityInQueryIndex, ref MeshBuildData data) =>
                 {
-                    // Get the join points for the line we are building for
+                    ecb.DestroyEntity(entityInQueryIndex, entity);
+                    if (!lineEntities.Contains(data.LineEntity))
+                    {
+                        return;
+                    }
+
                     Line line = lines[lineEntities.IndexOf<Entity>(data.LineEntity)];
                     LineJoinPoint joinPointA = joinPoints[joinEntities.IndexOf<Entity>(line.JoinPointA)];
                     LineJoinPoint joinPointB = joinPoints[joinEntities.IndexOf<Entity>(line.JoinPointB)];
@@ -66,7 +71,7 @@ namespace Sibz.Lines.ECS.Systems
                         EndDirections = new float3x2(joinPointA.Direction, joinPointB.Direction)
                     }.Execute();
 
-                    ecb.DestroyEntity(entityInQueryIndex, entity);
+
                 }).Schedule(Dependency);
             LineEndSimBufferSystem.Instance.AddJobHandleForProducer(Dependency);
         }
