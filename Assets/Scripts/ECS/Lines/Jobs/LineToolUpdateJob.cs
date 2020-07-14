@@ -3,29 +3,31 @@ using Sibz.Lines.ECS.Events;
 using Sibz.Math;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 
 namespace Sibz.Lines.ECS.Jobs
 {
-    public struct LineToolUpdateJob
+    public struct LineToolUpdateJob : IJob
     {
         public NewLineUpdateEvent EventData;
-        public EntityCommandBuffer.Concurrent Ecb;
-        public NativeArray<Entity> JoinPointEntities;
-        public NativeArray<LineJoinPoint> JoinPoints;
-        public NativeArray<Entity> LineEntities;
-        public NativeArray<Line> Lines;
-        public int JobIndex;
+        public EntityCommandBuffer Ecb;
+        [DeallocateOnJobCompletion] public NativeArray<Entity> JoinPointEntities;
+        [DeallocateOnJobCompletion] public NativeArray<LineJoinPoint> JoinPoints;
+        [DeallocateOnJobCompletion] public NativeArray<Entity> LineEntities;
+        [DeallocateOnJobCompletion] public NativeArray<Line> Lines;
+        public NativeArray<LineTool> LineTool;
         public Line Line;
+        public Entity LineToolEntity;
 
         private LineTool lineTool;
 
-        public void Execute(ref LineTool lineToolIn)
+        public void Execute()
         {
-            lineTool = lineToolIn;
+            lineTool = LineTool[0];
 
-            Line = Lines[LineEntities.IndexOf<Entity>(lineToolIn.Data.LineEntity)];
+            Line = Lines[LineEntities.IndexOf<Entity>(lineTool.Data.LineEntity)];
 
             if (EventData.HasData)
             {
@@ -36,9 +38,10 @@ namespace Sibz.Lines.ECS.Jobs
 
             SetLineDirty();
 
-            Ecb.SetComponent(JobIndex, lineToolIn.Data.LineEntity, Line);
+            Ecb.SetComponent(lineTool.Data.LineEntity, Line);
+            Ecb.SetComponent(LineToolEntity, lineTool);
 
-            lineToolIn = lineTool;
+            LineTool[0] = lineTool;
         }
 
         private void GenerateBezier()
@@ -69,7 +72,7 @@ namespace Sibz.Lines.ECS.Jobs
                 : jp1.Direction;
             jp2.Direction = jp2.Direction.Equals(float3.zero)
                             || float.IsNaN(jp2.Direction.x)
-                            || !pointAIsConnected &&  !pointBIsConnected
+                            || !pointAIsConnected && !pointBIsConnected
                 ? Normalize(pointA - pointB)
                 : jp2.Direction;
 
@@ -122,8 +125,8 @@ namespace Sibz.Lines.ECS.Jobs
             lineTool.Data.Bezier1 = b1;
             lineTool.Data.Bezier2 = b2;
 
-            Ecb.SetComponent(JobIndex, Line.JoinPointA, jp1);
-            Ecb.SetComponent(JobIndex, Line.JoinPointB, jp2);
+            Ecb.SetComponent(Line.JoinPointA, jp1);
+            Ecb.SetComponent(Line.JoinPointB, jp2);
 
             float3 GetOrigin() => GetControlPoint(forwards.c0, pointA, distances.x, scales.x, modifiers.From.Ratio);
             float3 GetEnd() => GetControlPoint(forwards.c1, pointB, distances.y, scales.y, modifiers.To.Ratio);
@@ -155,7 +158,7 @@ namespace Sibz.Lines.ECS.Jobs
 
         private void SetLineDirty()
         {
-            Ecb.AddComponent<Dirty>(JobIndex, lineTool.Data.LineEntity);
+            Ecb.AddComponent<Dirty>(lineTool.Data.LineEntity);
         }
 
         private void UpdateJoinPoint()
@@ -169,7 +172,7 @@ namespace Sibz.Lines.ECS.Jobs
             }
 
             int otherJoinIndex = JoinPointEntities.IndexOf<Entity>(
-                Line.JoinPointA.Equals(EventData.JoinPoint) ? Line.JoinPointB: Line.JoinPointA );
+                Line.JoinPointA.Equals(EventData.JoinPoint) ? Line.JoinPointB : Line.JoinPointA);
 
             Entity joinPointEntity = JoinPointEntities[joinIndex];
             LineJoinPoint joinPoint = JoinPoints[joinIndex];
@@ -182,21 +185,21 @@ namespace Sibz.Lines.ECS.Jobs
             {
                 LineJoinPoint eventJoinPoint = JoinPoints[JoinPointEntities.IndexOf<Entity>(EventData.JoinTo)];
                 joinPoint.Direction = -eventJoinPoint.Direction;
-                LineJoinPoint.Join(Ecb, JobIndex,
+                LineJoinPoint.Join(Ecb,
                     ref eventJoinPoint, EventData.JoinTo,
                     ref joinPoint, joinPointEntity);
             }
             else if (JoinPointEntities.Contains(joinPoint.JoinToPointEntity))
             {
                 LineJoinPoint jointToPoint = JoinPoints[JoinPointEntities.IndexOf<Entity>(joinPoint.JoinToPointEntity)];
-                LineJoinPoint.UnJoin(Ecb, JobIndex,
+                LineJoinPoint.UnJoin(Ecb,
                     ref jointToPoint, joinPoint.JoinToPointEntity,
                     ref joinPoint, joinPointEntity
                 );
             }
             else
             {
-                Ecb.SetComponent(JobIndex, joinPointEntity, joinPoint);
+                Ecb.SetComponent(joinPointEntity, joinPoint);
             }
 
             JoinPoints[joinIndex] = joinPoint;
