@@ -13,6 +13,7 @@ namespace Sibz.Lines.ECS.Systems
         protected override void OnCreate()
         {
             changeModEventQuery = GetEntityQuery(typeof(LineToolModChangeEvent));
+            RequireForUpdate(changeModEventQuery);
         }
 
         protected override void OnUpdate()

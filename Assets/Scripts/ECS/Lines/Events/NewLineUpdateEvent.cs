@@ -1,4 +1,4 @@
-﻿using Sibz.Lines.ECS.Components;
+﻿
 using Unity.Entities;
 using Unity.Mathematics;
 
@@ -9,9 +9,10 @@ namespace Sibz.Lines.ECS.Events
         public Entity JoinPoint;
         public Entity JoinTo;
         public float3 Position;
-        public bool HasData;
+        public Entity LineEntity;
+        public bool UpdateJoinPoints;
 
-        public static Entity New(Entity joinPoint, float3 position, Entity joinTo = default)
+        public static Entity New(Entity lineEntity, Entity joinPoint, float3 position, Entity joinTo = default)
         {
             Entity entity = LineWorld.Em.CreateEntity(typeof(NewLineUpdateEvent));
             LineWorld.Em.SetComponentData(entity, new NewLineUpdateEvent
@@ -19,18 +20,18 @@ namespace Sibz.Lines.ECS.Events
                 JoinPoint = joinPoint,
                 Position = position,
                 JoinTo = joinTo,
-                HasData = true
+                LineEntity = lineEntity,
+                UpdateJoinPoints = true,
             });
             return entity;
         }
 
         public static Entity New(Entity lineEntity)
         {
-            var ent =  LineWorld.Em.CreateEntity(typeof(NewLineUpdateEvent));
-            var line = LineWorld.Em.GetComponentData<Line>(lineEntity);
+            Entity ent =  LineWorld.Em.CreateEntity(typeof(NewLineUpdateEvent));
             LineWorld.Em.SetComponentData(ent, new NewLineUpdateEvent
             {
-                JoinPoint = line.JoinPointA
+                 LineEntity = lineEntity
             });
             return ent;
         }

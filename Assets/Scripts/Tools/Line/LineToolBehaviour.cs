@@ -105,11 +105,11 @@ namespace Sibz.Lines
                 if (snapNotifier.SnappedTo
                     && (node = snapNotifier.SnappedTo.GetComponent<EcsLineNodeBehaviour>()) != null)
                 {
-                    NewLineUpdateEvent.New(EditingLineBehaviour.EndNode2.JoinPoint, transform.position, node.JoinPoint);
+                    NewLineUpdateEvent.New(EditingLineBehaviour.LineEntity, EditingLineBehaviour.EndNode2.JoinPoint, transform.position, node.JoinPoint);
                 }
                 else
                 {
-                    NewLineUpdateEvent.New(EditingLineBehaviour.EndNode2.JoinPoint, transform.position);
+                    NewLineUpdateEvent.New(EditingLineBehaviour.LineEntity, EditingLineBehaviour.EndNode2.JoinPoint, transform.position);
                 }
             }
 

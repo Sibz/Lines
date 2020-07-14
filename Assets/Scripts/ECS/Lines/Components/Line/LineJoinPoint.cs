@@ -12,6 +12,9 @@ namespace Sibz.Lines.ECS.Components
         public float3 Direction;
         public float DistanceFromPivot;
 
+        // TODO: We need to ensure orphaned joins are cleaned up
+        public bool IsJoined => !JoinToPointEntity.Equals(Entity.Null);
+
         /// <summary>
         /// Max movement from direction in radians
         /// </summary>
@@ -35,14 +38,19 @@ namespace Sibz.Lines.ECS.Components
         }
 
         public static void UnJoin(EntityCommandBuffer.Concurrent ecb, int jobIndex,
-            ref LineJoinPoint fromData, Entity fromEntity,
-            ref LineJoinPoint toData, Entity toEntity)
+            ref LineJoinPoint fromData, ref LineJoinPoint toData)
         {
+            // TODO: Check isn't already un-joined
+            var fromEntity = toData.JoinToPointEntity;
+            var toEntity = fromData.JoinToPointEntity;
             fromData.JoinToPointEntity = Entity.Null;
             toData.JoinToPointEntity = Entity.Null;
-            ecb.SetComponent(jobIndex, fromEntity, fromData);
-            ecb.SetComponent(jobIndex, toEntity, toData);
+            if (fromEntity != Entity.Null)
+                ecb.SetComponent(jobIndex, fromEntity, fromData);
+            if (toEntity != Entity.Null)
+                ecb.SetComponent(jobIndex, toEntity, toData);
         }
+
         public static void UnJoin(EntityCommandBuffer ecb,
             ref LineJoinPoint fromData, Entity fromEntity,
             ref LineJoinPoint toData, Entity toEntity)
@@ -64,6 +72,18 @@ namespace Sibz.Lines.ECS.Components
 
             Join(a, b);
             Join(b, a);
+        }
+
+        public static void Join(ref LineJoinPoint jpA, ref LineJoinPoint jpB)
+        {
+            static void Join(ref LineJoinPoint a1, ref LineJoinPoint b1)
+            {
+                a1.JoinToPointEntity = b1.JoinToPointEntity;
+                LineWorld.Em.SetComponentData(b1.JoinToPointEntity, a1);
+            }
+
+            Join(ref jpA, ref jpB);
+            Join(ref jpB, ref jpA);
         }
 
         public static void Join(

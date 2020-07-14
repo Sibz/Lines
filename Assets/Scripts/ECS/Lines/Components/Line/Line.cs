@@ -18,6 +18,7 @@ namespace Sibz.Lines.ECS.Components
         public float3 Position;
         public Entity JoinPointA;
         public Entity JoinPointB;
+        public Entity Profile;
 
         private static GameObject prefab;
         public static GameObject Prefab => prefab == null
@@ -27,11 +28,14 @@ namespace Sibz.Lines.ECS.Components
         public static Entity New(float3 position, GameObject prefab)
         {
             Entity result = LineWorld.Em.CreateEntity(LineArchetype);
-            LineWorld.Em.SetComponentData(result, new Line{ Position = position});
+            LineWorld.Em.SetComponentData(result, new Line
+            {
+                Position = position,
+                Profile = Entity.Null
+            });
             LineWorld.Em.AddComponentObject(result,
                 Object.Instantiate(prefab, position, Quaternion.identity).GetComponent<EcsLineBehaviour>());
             return result;
         }
-
     }
 }

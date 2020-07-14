@@ -1,58 +1,37 @@
 ﻿using Sibz.Lines.ECS.Components;
-using Sibz.Lines.ECS.Events;
 using Sibz.Math;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
-using UnityEngine;
 
 namespace Sibz.Lines.ECS.Jobs
 {
-    public struct LineToolUpdateJob : IJob
+    public struct NewLineGetBezierJob : IJobParallelFor
     {
-        public NewLineUpdateEvent EventData;
-        public EntityCommandBuffer Ecb;
-        [DeallocateOnJobCompletion] public NativeArray<Entity> JoinPointEntities;
-        [DeallocateOnJobCompletion] public NativeArray<LineJoinPoint> JoinPoints;
-        [DeallocateOnJobCompletion] public NativeArray<Entity> LineEntities;
-        [DeallocateOnJobCompletion] public NativeArray<Line> Lines;
-        public NativeArray<LineTool> LineTool;
-        public Line Line;
-        public Entity LineToolEntity;
+        public LineTool LineTool;
 
-        private LineTool lineTool;
+        [ReadOnly]
+        public NativeArray<LineWithJoinPointData> LineWithJoinData;
 
-        public void Execute()
+        [NativeDisableParallelForRestriction]
+        public NativeArray<BezierData> BezierData;
+
+        public EntityCommandBuffer.Concurrent Ecb;
+
+        [ReadOnly]
+        public ComponentDataFromEntity<LineJoinPoint> JoinPoints;
+
+        public void Execute(int index)
         {
-            lineTool = LineTool[0];
+            LineToolData.ToolModifiers modifiers = LineTool.Data.Modifiers;
 
-            Line = Lines[LineEntities.IndexOf<Entity>(lineTool.Data.LineEntity)];
 
-            if (EventData.HasData)
-            {
-                UpdateJoinPoint();
-            }
+            LineJoinPoint jp1 = LineWithJoinData[index].JoinPointA;
+            LineJoinPoint jp2 = LineWithJoinData[index].JoinPointB;
 
-            GenerateBezier();
-
-            SetLineDirty();
-
-            Ecb.SetComponent(lineTool.Data.LineEntity, Line);
-            Ecb.SetComponent(LineToolEntity, lineTool);
-
-            LineTool[0] = lineTool;
-        }
-
-        private void GenerateBezier()
-        {
-            LineToolData.ToolModifiers modifiers = lineTool.Data.Modifiers;
-
-            LineJoinPoint jp1 = JoinPoints[JoinPointEntities.IndexOf<Entity>(Line.JoinPointA)];
-            LineJoinPoint jp2 = JoinPoints[JoinPointEntities.IndexOf<Entity>(Line.JoinPointB)];
-
-            bool pointAIsConnected = JoinPointEntities.Contains(jp1.JoinToPointEntity);
-            bool pointBIsConnected = JoinPointEntities.Contains(jp2.JoinToPointEntity);
+            bool pointAIsConnected = JoinPoints.Exists(jp1.JoinToPointEntity);
+            bool pointBIsConnected = JoinPoints.Exists(jp2.JoinToPointEntity);
 
             float3 pointA = jp1.Pivot;
             float3 pointB = jp2.Pivot;
@@ -122,11 +101,14 @@ namespace Sibz.Lines.ECS.Jobs
                 b2.c2 = Target(b2.c1, b1.c1, distances.y, distances.x, scales.y, scales.x, modifiers.To.Ratio);
             }
 
-            lineTool.Data.Bezier1 = b1;
-            lineTool.Data.Bezier2 = b2;
+            BezierData[index] = new BezierData
+            {
+                B1 = b1,
+                B2 = b2
+            };
 
-            Ecb.SetComponent(Line.JoinPointA, jp1);
-            Ecb.SetComponent(Line.JoinPointB, jp2);
+            Ecb.SetComponent(index, LineWithJoinData[index].Line.JoinPointA, jp1);
+            Ecb.SetComponent(index, LineWithJoinData[index].Line.JoinPointB, jp2);
 
             float3 GetOrigin() => GetControlPoint(forwards.c0, pointA, distances.x, scales.x, modifiers.From.Ratio);
             float3 GetEnd() => GetControlPoint(forwards.c1, pointB, distances.y, scales.y, modifiers.To.Ratio);
@@ -154,55 +136,6 @@ namespace Sibz.Lines.ECS.Jobs
             static float Dist(float3 a, float3 b) => math.distance(a, b);
             static float SinD(float a) => math.sin(math.PI / 180 * a);
             static float AngleD(float3 a, float3 b) => Mathematics.AngleDegrees(a, b);
-        }
-
-        private void SetLineDirty()
-        {
-            Ecb.AddComponent<Dirty>(lineTool.Data.LineEntity);
-        }
-
-        private void UpdateJoinPoint()
-        {
-            int joinIndex = JoinPointEntities.IndexOf<Entity>(EventData.JoinPoint);
-
-            if (joinIndex == -1)
-            {
-                Debug.LogWarning("Tried to update join point that doesn't exist or isn't editable");
-                return;
-            }
-
-            int otherJoinIndex = JoinPointEntities.IndexOf<Entity>(
-                Line.JoinPointA.Equals(EventData.JoinPoint) ? Line.JoinPointB : Line.JoinPointA);
-
-            Entity joinPointEntity = JoinPointEntities[joinIndex];
-            LineJoinPoint joinPoint = JoinPoints[joinIndex];
-            LineJoinPoint otherJoinPoint = JoinPoints[otherJoinIndex];
-
-            joinPoint.Pivot = EventData.Position;
-
-            if (!otherJoinPoint.JoinToPointEntity.Equals(EventData.JoinTo)
-                && JoinPointEntities.Contains(EventData.JoinTo))
-            {
-                LineJoinPoint eventJoinPoint = JoinPoints[JoinPointEntities.IndexOf<Entity>(EventData.JoinTo)];
-                joinPoint.Direction = -eventJoinPoint.Direction;
-                LineJoinPoint.Join(Ecb,
-                    ref eventJoinPoint, EventData.JoinTo,
-                    ref joinPoint, joinPointEntity);
-            }
-            else if (JoinPointEntities.Contains(joinPoint.JoinToPointEntity))
-            {
-                LineJoinPoint jointToPoint = JoinPoints[JoinPointEntities.IndexOf<Entity>(joinPoint.JoinToPointEntity)];
-                LineJoinPoint.UnJoin(Ecb,
-                    ref jointToPoint, joinPoint.JoinToPointEntity,
-                    ref joinPoint, joinPointEntity
-                );
-            }
-            else
-            {
-                Ecb.SetComponent(joinPointEntity, joinPoint);
-            }
-
-            JoinPoints[joinIndex] = joinPoint;
         }
     }
 }

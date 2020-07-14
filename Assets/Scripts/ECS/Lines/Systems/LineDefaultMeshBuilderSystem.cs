@@ -71,7 +71,7 @@ namespace Sibz.Lines.ECS.Systems
                         Profile = defaultLineProfile,
                         EndDirections = new float3x2(joinPointA.Direction, joinPointB.Direction)
                     }.Execute();
-
+                    ecb.AddComponent<MeshUpdated>(entityInQueryIndex, data.LineEntity);
 
                 }).Schedule(Dependency);
             LineEndSimBufferSystem.Instance.AddJobHandleForProducer(Dependency);
