@@ -24,7 +24,7 @@ namespace Sibz.Lines.ECS.Components
         public static Entity New(Entity parentEntity,          float3 pivot, float3 direction = default,
                                  float  distanceFromPivot = 0, float  angularLimit = DefaultAngularLimit)
         {
-            var entity = LineWorld.Em.CreateEntity(typeof(LineJoinPoint), typeof(JoinEditable));
+            var entity = LineWorld.Em.CreateEntity(typeof(LineJoinPoint));
             LineWorld.Em.SetComponentData(entity, new LineJoinPoint
                                                   {
                                                       ParentEntity      = parentEntity,
