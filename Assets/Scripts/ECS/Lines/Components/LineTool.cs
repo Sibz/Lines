@@ -7,9 +7,10 @@ namespace Sibz.Lines.ECS.Components
     public struct LineTool : IComponentData
     {
         public static EntityArchetype Archetype = LineWorld.Em
-            .CreateArchetype(typeof(LineTool));
+                                                           .CreateArchetype(typeof(LineTool));
+
         public LineToolState State;
-        public LineToolData Data;
+        public LineToolData  Data;
 
         public EcsLineBehaviour LineBehaviour =>
             State == LineToolState.Editing && LineWorld.Em.Exists(Data.LineEntity)
@@ -19,25 +20,26 @@ namespace Sibz.Lines.ECS.Components
         public static LineTool Default()
         {
             return new LineTool
-            {
-                Data =
-                {
-                    Modifiers =
-                    {
-                        From =
-                        {
-                            Ratio = 1f,
-                            Size = 2f,
-                        },
-                        To =
-                        {
-                            Ratio = 1f,
-                            Size = 2f,
-                        }
-                    }
-                }
-            };
+                   {
+                       Data =
+                       {
+                           Modifiers =
+                           {
+                               From =
+                               {
+                                   Ratio = 1f,
+                                   Size  = 2f
+                               },
+                               To =
+                               {
+                                   Ratio = 1f,
+                                   Size  = 2f
+                               }
+                           }
+                       }
+                   };
         }
+
         public static Entity New()
         {
             var ent = LineWorld.Em.CreateEntity(Archetype);

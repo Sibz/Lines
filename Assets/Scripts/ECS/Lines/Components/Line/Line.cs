@@ -7,13 +7,13 @@ namespace Sibz.Lines.ECS.Components
 {
     public struct Line : IComponentData
     {
-        public static EntityArchetype LineArchetype = LineWorld.Em
-            .CreateArchetype(
-                typeof(Line),
-                typeof(LineKnotData),
-                typeof(MeshTriangleData),
-                typeof(MeshVertexData),
-                typeof(NewLine));
+        public static EntityArchetype LineArchetype =
+            LineWorld.Em.CreateArchetype(
+                                         typeof(Line),
+                                         typeof(LineKnotData),
+                                         typeof(MeshTriangleData),
+                                         typeof(MeshVertexData),
+                                         typeof(NewLine));
 
         public float3 Position;
         public Entity JoinPointA;
@@ -21,20 +21,24 @@ namespace Sibz.Lines.ECS.Components
         public Entity Profile;
 
         private static GameObject prefab;
-        public static GameObject Prefab => prefab == null
-            ? (prefab = Resources.Load<GameObject>("prefabs/ecsLine"))
-            : prefab;
+
+        public static GameObject Prefab =>
+            prefab == null
+                ? prefab = Resources.Load<GameObject>("prefabs/ecsLine")
+                : prefab;
 
         public static Entity New(float3 position, GameObject prefab)
         {
-            Entity result = LineWorld.Em.CreateEntity(LineArchetype);
-            LineWorld.Em.SetComponentData(result, new Line
-            {
-                Position = position,
-                Profile = Entity.Null
-            });
+            var result = LineWorld.Em.CreateEntity(LineArchetype);
+            LineWorld.Em.SetComponentData(result,
+                                          new Line
+                                          {
+                                              Position = position,
+                                              Profile  = Entity.Null
+                                          });
             LineWorld.Em.AddComponentObject(result,
-                Object.Instantiate(prefab, position, Quaternion.identity).GetComponent<EcsLineBehaviour>());
+                                            Object.Instantiate(prefab, position, Quaternion.identity)
+                                                  .GetComponent<EcsLineBehaviour>());
             return result;
         }
     }

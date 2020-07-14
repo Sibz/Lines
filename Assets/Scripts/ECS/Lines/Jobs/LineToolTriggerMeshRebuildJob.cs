@@ -7,29 +7,25 @@ namespace Sibz.Lines.ECS.Jobs
 {
     public struct LineToolTriggerMeshRebuildJob : IJob
     {
+        [ReadOnly, DeallocateOnJobCompletion]
+        public NativeArray<bool> DidChange;
 
-
-        [ReadOnly] [DeallocateOnJobCompletion] public NativeArray<bool> DidChange;
         public EntityCommandBuffer Ecb;
-        public Entity LineEntity;
-        public Entity MeshBuilderPrefab;
+        public Entity              LineEntity;
+        public Entity              MeshBuilderPrefab;
 
         public void Execute()
         {
-            if (!DidChange[0])
-            {
-                return;
-            }
+            if (!DidChange[0]) return;
 
-            MeshBuildData buildData = new MeshBuildData
-            {
-                LineEntity = LineEntity
-            };
+            var buildData = new MeshBuildData
+                            {
+                                LineEntity = LineEntity
+                            };
 
-            Entity meshBuildTriggerEntity = Ecb.Instantiate(MeshBuilderPrefab);
+            var meshBuildTriggerEntity = Ecb.Instantiate(MeshBuilderPrefab);
             Ecb.SetComponent(meshBuildTriggerEntity, buildData);
             Ecb.AddComponent<MeshUpdated>(LineEntity);
-
         }
     }
 }

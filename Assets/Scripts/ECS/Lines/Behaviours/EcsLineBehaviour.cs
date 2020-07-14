@@ -1,5 +1,4 @@
-﻿using System;
-using Unity.Entities;
+﻿using Unity.Entities;
 using UnityEngine;
 
 namespace Sibz.Lines.ECS.Behaviours
@@ -10,15 +9,15 @@ namespace Sibz.Lines.ECS.Behaviours
         public EcsLineNodeBehaviour EndNode1;
         public EcsLineNodeBehaviour EndNode2;
 
-        public MeshRenderer MeshRenderer { get; private set; }
-        public MeshFilter MeshFilter { get; private set; }
-
         public Entity LineEntity;
+
+        public MeshRenderer MeshRenderer { get; private set; }
+        public MeshFilter   MeshFilter   { get; private set; }
 
         private void OnEnable()
         {
             MeshRenderer = GetComponent<MeshRenderer>();
-            MeshFilter = GetComponent<MeshFilter>();
+            MeshFilter   = GetComponent<MeshFilter>();
         }
 
         public void OnDirty()
@@ -26,27 +25,18 @@ namespace Sibz.Lines.ECS.Behaviours
             EndNode1.UpdateFromEntity();
             EndNode2.UpdateFromEntity();
         }
+
         private void Destroy()
         {
-            if (!LineWorld.World.IsCreated)
-            {
-                return;
-            }
+            if (!LineWorld.World.IsCreated) return;
 
             // Use a destroy event so line and associated entities are removed
             // and any joins can be unjoint
-            if (LineWorld.Em.Exists(EndNode1.JoinPoint))
-            {
-                LineWorld.Em.DestroyEntity(EndNode1.JoinPoint);
-            }
-            if (LineWorld.Em.Exists(EndNode2.JoinPoint))
-            {
-                LineWorld.Em.DestroyEntity(EndNode2.JoinPoint);
-            }
-            if (LineWorld.Em.Exists(LineEntity))
-            {
-                LineWorld.Em.DestroyEntity(LineEntity);
-            }
+            if (LineWorld.Em.Exists(EndNode1.JoinPoint)) LineWorld.Em.DestroyEntity(EndNode1.JoinPoint);
+
+            if (LineWorld.Em.Exists(EndNode2.JoinPoint)) LineWorld.Em.DestroyEntity(EndNode2.JoinPoint);
+
+            if (LineWorld.Em.Exists(LineEntity)) LineWorld.Em.DestroyEntity(LineEntity);
         }
 
         public void OnComplete()

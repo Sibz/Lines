@@ -1,6 +1,5 @@
 ﻿using Unity.Entities;
 using Unity.Mathematics;
-using UnityEngine;
 
 namespace Sibz.Lines.ECS.Components
 {
@@ -10,53 +9,52 @@ namespace Sibz.Lines.ECS.Components
         public Entity JoinToPointEntity;
         public float3 Pivot;
         public float3 Direction;
-        public float DistanceFromPivot;
+        public float  DistanceFromPivot;
 
         // TODO: We need to ensure orphaned joins are cleaned up
         public bool IsJoined => !JoinToPointEntity.Equals(Entity.Null);
 
         /// <summary>
-        /// Max movement from direction in radians
+        ///     Max movement from direction in radians
         /// </summary>
         public float AngularLimit;
 
         private const float DefaultAngularLimit = 6.283185307179586476925286766559f;
 
-        public static Entity New(Entity parentEntity, float3 pivot, float3 direction = default,
-            float distanceFromPivot = 0, float angularLimit = DefaultAngularLimit)
+        public static Entity New(Entity parentEntity,          float3 pivot, float3 direction = default,
+                                 float  distanceFromPivot = 0, float  angularLimit = DefaultAngularLimit)
         {
-            Entity entity = LineWorld.Em.CreateEntity(typeof(LineJoinPoint), typeof(JoinEditable));
+            var entity = LineWorld.Em.CreateEntity(typeof(LineJoinPoint), typeof(JoinEditable));
             LineWorld.Em.SetComponentData(entity, new LineJoinPoint
-            {
-                ParentEntity = parentEntity,
-                Pivot = pivot,
-                Direction = direction,
-                DistanceFromPivot = distanceFromPivot,
-                AngularLimit = angularLimit
-            });
+                                                  {
+                                                      ParentEntity      = parentEntity,
+                                                      Pivot             = pivot,
+                                                      Direction         = direction,
+                                                      DistanceFromPivot = distanceFromPivot,
+                                                      AngularLimit      = angularLimit
+                                                  });
             return entity;
         }
 
-        public static void UnJoin(EntityCommandBuffer.Concurrent ecb, int jobIndex,
-            ref LineJoinPoint fromData, ref LineJoinPoint toData)
+        public static void UnJoin(EntityCommandBuffer.Concurrent ecb,      int               jobIndex,
+                                  ref LineJoinPoint              fromData, ref LineJoinPoint toData)
         {
             // TODO: Check isn't already un-joined
             var fromEntity = toData.JoinToPointEntity;
-            var toEntity = fromData.JoinToPointEntity;
+            var toEntity   = fromData.JoinToPointEntity;
             fromData.JoinToPointEntity = Entity.Null;
-            toData.JoinToPointEntity = Entity.Null;
-            if (fromEntity != Entity.Null)
-                ecb.SetComponent(jobIndex, fromEntity, fromData);
-            if (toEntity != Entity.Null)
-                ecb.SetComponent(jobIndex, toEntity, toData);
+            toData.JoinToPointEntity   = Entity.Null;
+            if (fromEntity != Entity.Null) ecb.SetComponent(jobIndex, fromEntity, fromData);
+
+            if (toEntity != Entity.Null) ecb.SetComponent(jobIndex, toEntity, toData);
         }
 
         public static void UnJoin(EntityCommandBuffer ecb,
-            ref LineJoinPoint fromData, Entity fromEntity,
-            ref LineJoinPoint toData, Entity toEntity)
+                                  ref LineJoinPoint   fromData, Entity fromEntity,
+                                  ref LineJoinPoint   toData,   Entity toEntity)
         {
             fromData.JoinToPointEntity = Entity.Null;
-            toData.JoinToPointEntity = Entity.Null;
+            toData.JoinToPointEntity   = Entity.Null;
             ecb.SetComponent(fromEntity, fromData);
             ecb.SetComponent(toEntity, toData);
         }
@@ -65,7 +63,7 @@ namespace Sibz.Lines.ECS.Components
         {
             static void Join(Entity a1, Entity b1)
             {
-                LineJoinPoint jp = LineWorld.Em.GetComponentData<LineJoinPoint>(a1);
+                var jp = LineWorld.Em.GetComponentData<LineJoinPoint>(a1);
                 jp.JoinToPointEntity = b1;
                 LineWorld.Em.SetComponentData(a1, jp);
             }
@@ -87,9 +85,9 @@ namespace Sibz.Lines.ECS.Components
         }
 
         public static void Join(
-            EntityCommandBuffer.Concurrent ecb, int jobIndex,
-            ref LineJoinPoint fromData, Entity fromEntity,
-            ref LineJoinPoint toData, Entity toEntity)
+            EntityCommandBuffer.Concurrent ecb,      int    jobIndex,
+            ref LineJoinPoint              fromData, Entity fromEntity,
+            ref LineJoinPoint              toData,   Entity toEntity)
         {
             void Join(Entity a1, ref LineJoinPoint data, Entity b1)
             {
@@ -103,8 +101,8 @@ namespace Sibz.Lines.ECS.Components
 
         public static void Join(
             EntityCommandBuffer ecb,
-            ref LineJoinPoint fromData, Entity fromEntity,
-            ref LineJoinPoint toData, Entity toEntity)
+            ref LineJoinPoint   fromData, Entity fromEntity,
+            ref LineJoinPoint   toData,   Entity toEntity)
         {
             void Join(Entity a1, ref LineJoinPoint data, Entity b1)
             {

@@ -12,16 +12,15 @@ namespace Sibz.Lines.ECS.Events
 
         public static Entity New(Entity lineEntity, Entity joinPoint, float3 position, Entity joinTo = default)
         {
-            Entity entity = LineWorld.Em.CreateEntity(typeof(NewLineJoinPointUpdateEvent2));
+            var entity = LineWorld.Em.CreateEntity(typeof(NewLineJoinPointUpdateEvent2));
             LineWorld.Em.SetComponentData(entity, new NewLineJoinPointUpdateEvent2
-            {
-                JoinPoint = joinPoint,
-                Position = position,
-                JoinTo = joinTo,
-                LineEntity = lineEntity
-            });
+                                                  {
+                                                      JoinPoint  = joinPoint,
+                                                      Position   = position,
+                                                      JoinTo     = joinTo,
+                                                      LineEntity = lineEntity
+                                                  });
             return entity;
         }
-
     }
 }

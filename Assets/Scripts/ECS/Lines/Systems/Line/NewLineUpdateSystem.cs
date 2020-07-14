@@ -21,12 +21,12 @@ namespace Sibz.Lines.ECS.Systems
         {
             int eventCount = eventQuery.CalculateEntityCount();
 
-            NativeArray<LineWithJoinPointData> lineWithJoinData =
+            var lineWithJoinData =
                 new NativeArray<LineWithJoinPointData>(eventCount, Allocator.TempJob);
 
             var eventData =
                 eventQuery.ToComponentDataArrayAsync<NewLineUpdateEvent>(
-                    Allocator.TempJob, out JobHandle jh1);
+                                                                         Allocator.TempJob, out var jh1);
 
             var joinPoints = GetComponentDataFromEntity<LineJoinPoint>();
 
@@ -34,65 +34,65 @@ namespace Sibz.Lines.ECS.Systems
             var lineEntities = new NativeArray<Entity>(eventCount, Allocator.TempJob);
 
             Dependency = new GatherLineWithJoinPointData
-            {
-                EventData = eventData,
-                Lines = GetComponentDataFromEntity<Line>(true),
-                JoinPoints = joinPoints,
-                LineWithJoinData = lineWithJoinData,
-                LineEntities = lineEntities
-            }.Schedule(eventCount, 4, JobHandle.CombineDependencies(Dependency, jh1));
+                         {
+                             EventData        = eventData,
+                             Lines            = GetComponentDataFromEntity<Line>(true),
+                             JoinPoints       = joinPoints,
+                             LineWithJoinData = lineWithJoinData,
+                             LineEntities     = lineEntities
+                         }.Schedule(eventCount, 4, JobHandle.CombineDependencies(Dependency, jh1));
 
             // This job only runs if UpdateJoinPoints is set in event data
             Dependency = new NewLineUpdateJoinPointJob
-            {
-                Ecb = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
-                EventData = eventData,
-                LineWithJoinData = lineWithJoinData,
-                JoinPoints = joinPoints
-            }.Schedule(eventCount, 4, Dependency);
+                         {
+                             Ecb              = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             EventData        = eventData,
+                             LineWithJoinData = lineWithJoinData,
+                             JoinPoints       = joinPoints
+                         }.Schedule(eventCount, 4, Dependency);
 
             var bezierData = new NativeArray<BezierData>(eventCount, Allocator.TempJob);
 
             Dependency = new NewLineGetBezierJob
-            {
-                Ecb = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
-                BezierData = bezierData,
-                JoinPoints = GetComponentDataFromEntity<LineJoinPoint>(),
-                LineTool = GetSingleton<LineTool>(),
-                LineWithJoinData = lineWithJoinData
-            }.Schedule(eventCount, 4, Dependency);
+                         {
+                             Ecb              = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             BezierData       = bezierData,
+                             JoinPoints       = GetComponentDataFromEntity<LineJoinPoint>(),
+                             LineTool         = GetSingleton<LineTool>(),
+                             LineWithJoinData = lineWithJoinData
+                         }.Schedule(eventCount, 4, Dependency);
 
             Dependency = new NewLineGenerateKnotsJob
-            {
-                BezierData = bezierData,
-                KnotData = GetBufferFromEntity<LineKnotData>(),
-                LineEntities = lineEntities,
-                LineProfiles = GetComponentDataFromEntity<LineProfile>(),
-                LineTool = GetSingleton<LineTool>(),
-                LineWithJoinData = lineWithJoinData
-            }.Schedule(eventCount, 4, Dependency);
+                         {
+                             BezierData       = bezierData,
+                             KnotData         = GetBufferFromEntity<LineKnotData>(),
+                             LineEntities     = lineEntities,
+                             LineProfiles     = GetComponentDataFromEntity<LineProfile>(),
+                             LineTool         = GetSingleton<LineTool>(),
+                             LineWithJoinData = lineWithJoinData
+                         }.Schedule(eventCount, 4, Dependency);
 
             Dependency = new LineSetDirtyJob
-            {
-                LineEntities = lineEntities,
-                Ecb = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent()
-            }.Schedule(eventCount, 4, Dependency);
+                         {
+                             LineEntities = lineEntities,
+                             Ecb          = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent()
+                         }.Schedule(eventCount, 4, Dependency);
 
             Dependency = new LineTriggerMeshRebuildJob
-            {
-                Ecb = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
-                LineEntities = lineEntities,
-                LineProfiles = GetComponentDataFromEntity<LineProfile>(),
-                LineWithJoinData = lineWithJoinData,
-                DefaultPrefab = LineDefaultMeshBuilderSystem.Prefab
-            }.Schedule(eventCount, 4, Dependency);
+                         {
+                             Ecb              = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             LineEntities     = lineEntities,
+                             LineProfiles     = GetComponentDataFromEntity<LineProfile>(),
+                             LineWithJoinData = lineWithJoinData,
+                             DefaultPrefab    = LineDefaultMeshBuilderSystem.Prefab
+                         }.Schedule(eventCount, 4, Dependency);
 
             Dependency = new DeallocateJob<Entity, LineWithJoinPointData, NewLineUpdateEvent>
-            {
-                NativeArray1 = lineEntities,
-                NativeArray2 = lineWithJoinData,
-                NativeArray3 = eventData
-            }.Schedule(Dependency);
+                         {
+                             NativeArray1 = lineEntities,
+                             NativeArray2 = lineWithJoinData,
+                             NativeArray3 = eventData
+                         }.Schedule(Dependency);
 
             LineEndSimBufferSystem.Instance.CreateCommandBuffer().DestroyEntity(eventQuery);
 

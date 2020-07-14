@@ -3,7 +3,7 @@ using Unity.Entities;
 
 namespace Sibz.Lines.ECS.Events
 {
-    public struct LineToolModChangeEvent :IComponentData
+    public struct LineToolModChangeEvent : IComponentData
     {
         public LineToolData.ToolModifiers ModifierChangeValues;
 
@@ -11,9 +11,9 @@ namespace Sibz.Lines.ECS.Events
         {
             var ent = LineWorld.Em.CreateEntity();
             LineWorld.Em.AddComponentData(ent, new LineToolModChangeEvent
-            {
-                ModifierChangeValues = modifierChangeValues
-            });
+                                               {
+                                                   ModifierChangeValues = modifierChangeValues
+                                               });
         }
     }
 }

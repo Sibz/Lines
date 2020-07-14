@@ -332,3 +332,4 @@ public class LineF : IEquatable<LineF>
         return (StartPoint == other.StartPoint && EndPoint == other.EndPoint) || (StartPoint == other.EndPoint && EndPoint == other.StartPoint);
     }
 }*/
+

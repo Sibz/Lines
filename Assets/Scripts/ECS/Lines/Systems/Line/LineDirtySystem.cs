@@ -10,14 +10,13 @@ namespace Sibz.Lines.ECS.Systems
         {
             var commandBuffer = LineEndSimBufferSystem.Instance.CreateCommandBuffer();
             Entities
-                .WithAll<Dirty>()
-                .WithoutBurst()
-                .ForEach((Entity entity, int entityInQueryIndex, ref Line line) =>
-                {
-                    LineWorld.Em.GetComponentObject<EcsLineBehaviour>(entity).OnDirty();
-                    commandBuffer.RemoveComponent<Dirty>(entity);
-                }).Run();
+               .WithAll<Dirty>()
+               .WithoutBurst()
+               .ForEach((Entity entity, int entityInQueryIndex, ref Line line) =>
+                        {
+                            LineWorld.Em.GetComponentObject<EcsLineBehaviour>(entity).OnDirty();
+                            commandBuffer.RemoveComponent<Dirty>(entity);
+                        }).Run();
         }
-
     }
 }

@@ -41,35 +41,35 @@ namespace Sibz.Lines.ECS
             }
 
             if (def.subSystemList != null)
-            {
-                for (int i = 0; i < def.subSystemList.Length; i++)
-                {
+                for (var i = 0; i < def.subSystemList.Length; i++)
                     if (UpdateSystem<T>(ref def.subSystemList[i], type))
-                    {
                         return true;
-                    }
-                }
-            }
 
             return false;
         }
 
-        private static bool UpdateSystem<T, T2>(ref PlayerLoopSystem def) where T2 : ComponentSystemBase =>
-            UpdateSystem<T2>(ref def, typeof(T));
+        private static bool UpdateSystem<T, T2>(ref PlayerLoopSystem def) where T2 : ComponentSystemBase
+        {
+            return UpdateSystem<T2>(ref def, typeof(T));
+        }
 
         private static void AddSystem<T>(ref PlayerLoopSystem def) where T : ComponentSystemBase
         {
-            PlayerLoopSystem[] list = new PlayerLoopSystem[def.subSystemList.Length + 1];
+            var list = new PlayerLoopSystem[def.subSystemList.Length + 1];
             def.subSystemList.CopyTo(list, 0);
             list[def.subSystemList.Length].type = typeof(T);
-            Type type = Assembly.GetAssembly(typeof(ScriptBehaviourUpdateOrder)).GetTypes().FirstOrDefault(x => x.Name == "DummyDelegateWrapper");
+            var type = Assembly.GetAssembly(typeof(ScriptBehaviourUpdateOrder)).GetTypes()
+                               .FirstOrDefault(x => x.Name == "DummyDelegateWrapper");
 
             if (type != null)
             {
-                object instance = Activator.CreateInstance(type, LineWorld.World.GetOrCreateSystem<T>());
-                list[def.subSystemList.Length].updateDelegate =  (PlayerLoopSystem.UpdateFunction) type
-                    .GetMethod("TriggerUpdate")?.CreateDelegate(typeof(PlayerLoopSystem.UpdateFunction), instance);
+                var instance = Activator.CreateInstance(type, LineWorld.World.GetOrCreateSystem<T>());
+                list[def.subSystemList.Length].updateDelegate = (PlayerLoopSystem.UpdateFunction) type
+                                                                                                 .GetMethod("TriggerUpdate")
+                                                                                                ?.CreateDelegate(typeof(PlayerLoopSystem.UpdateFunction),
+                                                                                                                 instance);
             }
+
             def.subSystemList = list;
         }
     }

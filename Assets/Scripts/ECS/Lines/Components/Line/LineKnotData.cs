@@ -6,7 +6,7 @@ namespace Sibz.Lines.ECS.Components
 {
     public struct LineKnotData : IBufferElementData
     {
-        public float3 Position;
+        public float3        Position;
         public LineKnotFlags Flags;
     }
 }

@@ -4,6 +4,5 @@ namespace Sibz.Lines.ECS.Systems
 {
     public class LineWorldPresGroup : PresentationSystemGroup
     {
-
     }
 }

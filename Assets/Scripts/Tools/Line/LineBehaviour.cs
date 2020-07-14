@@ -8,13 +8,17 @@ namespace Sibz.Lines
     public class LineBehaviour : MonoBehaviour
     {
         public float CentreSnapPadding = 0.75f;
-        public float Width = 0.5f;
+
+        [NonSerialized]
+        public GameObject Cursor;
+
         public float KnotSpacing = 0.25f;
+
+        [NonSerialized]
+        public Line Line;
+
         public GameObject OriginNode, EndNode, CentreNode, CentreNodeActivator;
-
-        [NonSerialized] public GameObject Cursor;
-
-        [NonSerialized] public Line Line;
+        public float      Width = 0.5f;
 
         public bool CentreNodeEnabled
         {
@@ -24,15 +28,11 @@ namespace Sibz.Lines
         private void Start()
         {
             if (!OriginNode || !EndNode || !CentreNode || !CentreNodeActivator)
-            {
                 throw new NullReferenceException("Must set nodes on line prefab!");
-            }
-
         }
 
         private void OnEnable()
         {
-
             Cursor = GameObject.FindGameObjectWithTag("Cursor");
 
             if (!Cursor)

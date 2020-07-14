@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using NUnit.Framework;
-using UnityEngine;
 
 namespace Sibz.Lines.Tests
 {
@@ -10,7 +9,7 @@ namespace Sibz.Lines.Tests
         public void WhenLoadingInvalidToolId_ShouldThrow()
         {
             Assert.Catch<NoPathForToolIdException>(() =>
-                PlayerToolSelector.LoadToolPrefab(ToolResourcePaths.Paths, 532));
+                                                       PlayerToolSelector.LoadToolPrefab(ToolResourcePaths.Paths, 532));
         }
 
         [Test]
@@ -23,16 +22,18 @@ namespace Sibz.Lines.Tests
         public void WhenLoadingInvalidPath_ShouldThrow()
         {
             Assert.Catch<ToolPrefabNotFoundException>(
-                () => PlayerToolSelector.LoadToolPrefab(new Dictionary<ushort, string>
-                {
-                    { 1, "Prefabs/Invalid" }
-                }, 1));
+                                                      () =>
+                                                          PlayerToolSelector
+                                                             .LoadToolPrefab(new Dictionary<ushort, string>
+                                                                             {
+                                                                                 {1, "Prefabs/Invalid"}
+                                                                             }, 1));
         }
 
         [Test]
         public void WhenOneShouldSelectFirstTool()
         {
-            PlayerToolSelector toolSelector = new PlayerToolSelector(ToolResourcePaths.Paths);
+            var toolSelector = new PlayerToolSelector(ToolResourcePaths.Paths);
             toolSelector.SwitchTool(1);
             Assert.IsTrue(toolSelector.CurrentTool.Id == (ushort) PlayerToolType.Line1);
         }
@@ -40,7 +41,7 @@ namespace Sibz.Lines.Tests
         [Test]
         public void WhenOneShouldHaveInstanceOfLine1Tool()
         {
-            PlayerToolSelector toolSelector = new PlayerToolSelector(ToolResourcePaths.Paths);
+            var toolSelector = new PlayerToolSelector(ToolResourcePaths.Paths);
             toolSelector.SwitchTool(1);
             Assert.IsNotNull(toolSelector.CurrentTool.Object, "CurrentToolObject Not Set");
             Assert.IsNotNull(toolSelector.CurrentTool.Object.GetComponent<LineToolBehaviour>());
@@ -49,9 +50,9 @@ namespace Sibz.Lines.Tests
         [Test]
         public void WhenToolSetToNone_ShouldDeactivateCurrentTool()
         {
-            PlayerToolSelector toolSelector = new PlayerToolSelector(ToolResourcePaths.Paths);
+            var toolSelector = new PlayerToolSelector(ToolResourcePaths.Paths);
             toolSelector.SwitchTool(1);
-            GameObject currentTool = toolSelector.CurrentTool.Object;
+            var currentTool = toolSelector.CurrentTool.Object;
             toolSelector.SwitchTool((ushort) PlayerToolType.None);
             Assert.IsFalse(currentTool.activeSelf);
         }

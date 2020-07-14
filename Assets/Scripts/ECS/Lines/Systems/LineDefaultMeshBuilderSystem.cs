@@ -10,11 +10,10 @@ namespace Sibz.Lines.ECS.Systems
     [UpdateInGroup(typeof(LineWorldPresGroup), OrderFirst = true)]
     public class LineDefaultMeshBuilderSystem : SystemBase
     {
-        private EntityQuery meshJobQuery;
-        private EntityQuery lineQuery;
-        private EntityQuery lineJoinsQuery;
-
-        public static Entity Prefab;
+        public static Entity      Prefab;
+        private       EntityQuery lineJoinsQuery;
+        private       EntityQuery lineQuery;
+        private       EntityQuery meshJobQuery;
 
         protected override void OnCreate()
         {
@@ -31,49 +30,48 @@ namespace Sibz.Lines.ECS.Systems
 
         protected override void OnUpdate()
         {
-            var triangleBuffer = GetBufferFromEntity<MeshTriangleData>();
-            var vertexBuffer = GetBufferFromEntity<MeshVertexData>();
-            var knotBuffer = GetBufferFromEntity<LineKnotData>(true);
+            var triangleBuffer     = GetBufferFromEntity<MeshTriangleData>();
+            var vertexBuffer       = GetBufferFromEntity<MeshVertexData>();
+            var knotBuffer         = GetBufferFromEntity<LineKnotData>(true);
             var defaultLineProfile = LineProfile.Default();
 
-            var lineEntities = lineQuery.ToEntityArrayAsync(Allocator.TempJob, out JobHandle jh1);
-            var lines = lineQuery.ToComponentDataArrayAsync<Line>(Allocator.TempJob, out JobHandle jh2);
+            var lineEntities = lineQuery.ToEntityArrayAsync(Allocator.TempJob, out var jh1);
+            var lines        = lineQuery.ToComponentDataArrayAsync<Line>(Allocator.TempJob, out var jh2);
             Dependency = JobHandle.CombineDependencies(Dependency, jh1, jh2);
 
             var joinEntities = lineJoinsQuery.ToEntityArrayAsync(Allocator.TempJob, out jh1);
-            var joinPoints = lineJoinsQuery.ToComponentDataArrayAsync<LineJoinPoint>(Allocator.TempJob, out jh2);
+            var joinPoints =
+                lineJoinsQuery.ToComponentDataArrayAsync<LineJoinPoint>(Allocator.TempJob, out jh2);
             Dependency = JobHandle.CombineDependencies(Dependency, jh1, jh2);
 
             var ecb = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent();
             Dependency = Entities
-                .WithDeallocateOnJobCompletion(lineEntities)
-                .WithDeallocateOnJobCompletion(lines)
-                .WithDeallocateOnJobCompletion(joinEntities)
-                .WithDeallocateOnJobCompletion(joinPoints)
-                .ForEach((Entity entity, int entityInQueryIndex, ref MeshBuildData data) =>
-                {
-                    ecb.DestroyEntity(entityInQueryIndex, entity);
-                    if (!lineEntities.Contains(data.LineEntity))
-                    {
-                        return;
-                    }
+                        .WithDeallocateOnJobCompletion(lineEntities)
+                        .WithDeallocateOnJobCompletion(lines)
+                        .WithDeallocateOnJobCompletion(joinEntities)
+                        .WithDeallocateOnJobCompletion(joinPoints)
+                        .ForEach((Entity entity, int entityInQueryIndex, ref MeshBuildData data) =>
+                                 {
+                                     ecb.DestroyEntity(entityInQueryIndex, entity);
+                                     if (!lineEntities.Contains(data.LineEntity)) return;
 
-                    Line line = lines[lineEntities.IndexOf<Entity>(data.LineEntity)];
-                    LineJoinPoint joinPointA = joinPoints[joinEntities.IndexOf<Entity>(line.JoinPointA)];
-                    LineJoinPoint joinPointB = joinPoints[joinEntities.IndexOf<Entity>(line.JoinPointB)];
+                                     var line = lines[lineEntities.IndexOf<Entity>(data.LineEntity)];
+                                     var joinPointA =
+                                         joinPoints[joinEntities.IndexOf<Entity>(line.JoinPointA)];
+                                     var joinPointB =
+                                         joinPoints[joinEntities.IndexOf<Entity>(line.JoinPointB)];
 
-                    new LineMeshRebuildJob
-                    {
-                        Knots = knotBuffer[data.LineEntity],
-                        Triangles = triangleBuffer[data.LineEntity],
-                        VertexData = vertexBuffer[data.LineEntity],
-                        // TODO: Load line profile
-                        Profile = defaultLineProfile,
-                        EndDirections = new float3x2(joinPointA.Direction, joinPointB.Direction)
-                    }.Execute();
-                    ecb.AddComponent<MeshUpdated>(entityInQueryIndex, data.LineEntity);
-
-                }).Schedule(Dependency);
+                                     new LineMeshRebuildJob
+                                     {
+                                         Knots      = knotBuffer[data.LineEntity],
+                                         Triangles  = triangleBuffer[data.LineEntity],
+                                         VertexData = vertexBuffer[data.LineEntity],
+                                         // TODO: Load line profile
+                                         Profile       = defaultLineProfile,
+                                         EndDirections = new float3x2(joinPointA.Direction, joinPointB.Direction)
+                                     }.Execute();
+                                     ecb.AddComponent<MeshUpdated>(entityInQueryIndex, data.LineEntity);
+                                 }).Schedule(Dependency);
             LineEndSimBufferSystem.Instance.AddJobHandleForProducer(Dependency);
         }
     }

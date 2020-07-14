@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -7,40 +6,35 @@ namespace Sibz.Lines.Mono
 {
     public class Line
     {
+        private readonly BoxCollider   centreNodeActivatorCollider;
+        private readonly Collider      centreNodeCollider;
+        private readonly GameObject    cursor;
+        private readonly Collider      endNodeCollider;
+        private readonly LineBehaviour lineBehaviour;
+        private readonly MeshFilter    meshFilter;
+        private readonly Collider      originNodeCollider;
+        private          bool          centreNodeIsNoneCentre;
+
         public float Length =>
             (lineBehaviour.OriginNode.transform.localPosition - lineBehaviour.EndNode.transform.localPosition)
-            .magnitude;
+           .magnitude;
 
         public float CurveLength
         {
             get
             {
-                if (SplineKnots == null || SplineKnots.Length < 2)
-                    return Length;
+                if (SplineKnots == null || SplineKnots.Length < 2) return Length;
+
                 float distance = 0;
-                for (int i = 1; i < SplineKnots.Length; i++)
-                {
+                for (var i = 1; i < SplineKnots.Length; i++)
                     distance += math.distance(SplineKnots[i - 1], SplineKnots[i]);
-                }
 
                 return distance;
             }
         }
 
-        private float KnotSpacing => lineBehaviour.KnotSpacing;
-
         public bool CentreNodeEnabled { get; set; }
 
-        private readonly LineBehaviour lineBehaviour;
-        private GameObject LineObject => lineBehaviour.gameObject;
-        private readonly GameObject cursor;
-
-        private readonly BoxCollider centreNodeActivatorCollider;
-        private readonly Collider originNodeCollider;
-        private readonly Collider endNodeCollider;
-        private readonly Collider centreNodeCollider;
-        private readonly MeshFilter meshFilter;
-        private bool centreNodeIsNoneCentre;
         //private GameObject originSnappedTo;
         public float3[] SplineKnots { get; set; } = new float3[0];
 
@@ -48,12 +42,15 @@ namespace Sibz.Lines.Mono
         {
             set
             {
-                originNodeCollider.enabled = value;
-                endNodeCollider.enabled = value;
-                centreNodeCollider.enabled = value;
+                originNodeCollider.enabled          = value;
+                endNodeCollider.enabled             = value;
+                centreNodeCollider.enabled          = value;
                 centreNodeActivatorCollider.enabled = value;
             }
         }
+
+        private float      KnotSpacing => lineBehaviour.KnotSpacing;
+        private GameObject LineObject  => lineBehaviour.gameObject;
 
         public Line(LineBehaviour lineBehaviour)
         {
@@ -62,40 +59,30 @@ namespace Sibz.Lines.Mono
                 || !lineBehaviour.EndNode
                 || !lineBehaviour.CentreNode
                 || !lineBehaviour.CentreNodeActivator)
-            {
                 throw new ArgumentException("Must set nodes on lineBehaviour prefab!", nameof(lineBehaviour));
-            }
 
             centreNodeActivatorCollider = lineBehaviour.CentreNodeActivator.GetComponent<BoxCollider>();
             if (centreNodeActivatorCollider == null)
-            {
                 throw new NullReferenceException(
-                    $"{nameof(lineBehaviour.CentreNodeActivator)} must have BoxCollider component");
-            }
+                                                 $"{nameof(lineBehaviour.CentreNodeActivator)} must have BoxCollider component");
 
             originNodeCollider = lineBehaviour.OriginNode.GetComponent<Collider>();
             if (originNodeCollider == null)
-            {
                 throw new NullReferenceException(
-                    $"{nameof(lineBehaviour.OriginNode)} must have collider component");
-            }
+                                                 $"{nameof(lineBehaviour.OriginNode)} must have collider component");
 
             endNodeCollider = lineBehaviour.EndNode.GetComponent<Collider>();
             if (endNodeCollider == null)
-            {
                 throw new NullReferenceException(
-                    $"{nameof(lineBehaviour.EndNode)} must have collider component");
-            }
+                                                 $"{nameof(lineBehaviour.EndNode)} must have collider component");
 
             centreNodeCollider = lineBehaviour.CentreNode.GetComponent<Collider>();
             if (centreNodeCollider == null)
-            {
                 throw new NullReferenceException(
-                    $"{nameof(lineBehaviour.CentreNode)} must have collider component");
-            }
+                                                 $"{nameof(lineBehaviour.CentreNode)} must have collider component");
 
             meshFilter = LineObject.GetComponent<MeshFilter>();
-            cursor = lineBehaviour.Cursor;
+            cursor     = lineBehaviour.Cursor;
         }
 
         /*
@@ -164,7 +151,6 @@ namespace Sibz.Lines.Mono
         */
 
 
-
         public void RebuildMesh()
         {
             /*meshFilter.sharedMesh = LineMeshMaker.Build(
@@ -172,13 +158,19 @@ namespace Sibz.Lines.Mono
                 lineBehaviour.Width,
                 1);*/
             meshFilter.sharedMesh = LineMeshMaker.Build(
-                 lineBehaviour.transform.InverseTransformDirection(lineBehaviour.OriginNode.transform.forward),
-                 lineBehaviour.transform.InverseTransformDirection(lineBehaviour.EndNode.transform.forward),
-                // lineBehaviour.OriginNode.transform.forward,
-                // lineBehaviour.EndNode.transform.forward,
-                SplineKnots,
-                lineBehaviour.Width
-            );
+                                                        lineBehaviour.transform.InverseTransformDirection(lineBehaviour
+                                                                                                         .OriginNode
+                                                                                                         .transform
+                                                                                                         .forward),
+                                                        lineBehaviour.transform.InverseTransformDirection(lineBehaviour
+                                                                                                         .EndNode
+                                                                                                         .transform
+                                                                                                         .forward),
+                                                        // lineBehaviour.OriginNode.transform.forward,
+                                                        // lineBehaviour.EndNode.transform.forward,
+                                                        SplineKnots,
+                                                        lineBehaviour.Width
+                                                       );
         }
 
         /*private void ResizeCentreNodeActivatorCollider()

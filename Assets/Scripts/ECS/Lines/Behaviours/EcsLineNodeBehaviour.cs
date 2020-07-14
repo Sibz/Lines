@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using Sibz.Lines.ECS.Components;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -9,10 +8,9 @@ namespace Sibz.Lines.ECS.Behaviours
 {
     public class EcsLineNodeBehaviour : MonoBehaviour
     {
-        public Entity JoinPoint;
-
-        private Collider col;
-        public LineJoinPoint JoinPointData => LineWorld.Em.GetComponentData<LineJoinPoint>(JoinPoint);
+        public  Entity        JoinPoint;
+        private Collider      col;
+        public  LineJoinPoint JoinPointData => LineWorld.Em.GetComponentData<LineJoinPoint>(JoinPoint);
 
         private void OnEnable()
         {
@@ -29,7 +27,7 @@ namespace Sibz.Lines.ECS.Behaviours
             {
                 tx.rotation = Quaternion.LookRotation(data.Direction);
                 tx.position =
-                    data.Pivot + (data.Direction * data.DistanceFromPivot);
+                    data.Pivot + data.Direction * data.DistanceFromPivot;
             }
             else
             {
@@ -43,10 +41,7 @@ namespace Sibz.Lines.ECS.Behaviours
 
             if (LineWorld.Em.Exists(JoinPointData.JoinToPointEntity))
             {
-                if (!gameObject.activeSelf)
-                {
-                    return;
-                }
+                if (!gameObject.activeSelf) return;
 
                 StartCoroutine(SetInActiveEndOfFrame());
                 return;
@@ -62,7 +57,6 @@ namespace Sibz.Lines.ECS.Behaviours
             gameObject.SetActive(false);
 
             LineWorld.Em.GetComponentObject<EcsLineBehaviour>(otherJoinData.ParentEntity)?.OnComplete();
-
         }
     }
 }

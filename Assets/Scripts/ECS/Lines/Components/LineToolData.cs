@@ -6,10 +6,11 @@ namespace Sibz.Lines.ECS.Components
     public struct LineToolData
     {
         public ToolModifiers Modifiers;
-        public Entity LineProfileEntity;
-        public Entity LineEntity;
-        public float3x3 Bezier1;
-        public float3x3 Bezier2;
+        public Entity        LineProfileEntity;
+        public Entity        LineEntity;
+        public float3x3      Bezier1;
+        public float3x3      Bezier2;
+
         public struct ToolModifiers
         {
             public EndMods To;
@@ -23,7 +24,6 @@ namespace Sibz.Lines.ECS.Components
                 public float InnerHeight;
                 public float InnerHeightDistanceFromEnd;
             }
-
         }
     }
 }
