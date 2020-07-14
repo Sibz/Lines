@@ -13,6 +13,7 @@ namespace Sibz.Lines.ECS.Jobs
         public NativeArray<bool> DidChange;
         public LineProfile LineProfile;
         public DynamicBuffer<LineKnotData> KnotData;
+        //test
 
         public void Execute()
         {
