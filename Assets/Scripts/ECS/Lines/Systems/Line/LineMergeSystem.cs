@@ -1,9 +1,9 @@
-﻿using Sibz.Lines.ECS.Components;
+﻿using System;
+using Sibz.Lines.ECS.Components;
 using Sibz.Lines.ECS.Jobs;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
-using UnityEngine;
 
 namespace Sibz.Lines.ECS.Systems
 {
@@ -85,10 +85,7 @@ namespace Sibz.Lines.ECS.Systems
                 lineEntity = LineEntities[index];
 
                 if (!LineJoinPoints.Exists(line.JoinPointA) || !LineJoinPoints.Exists(line.JoinPointB))
-                    /* TODO see how we throw errors from burst jobs, if only when in editor
-                         #if ENABLE_UNITY_COLLECTIONS_CHECKS
-                        throw new InvalidOperationException("One or more line join points didn't exit");*/
-                    return;
+                    throw new InvalidOperationException("One or more line join points didn't exist");
 
                 Line   otherLine;
                 Entity thisJoinEntity;
@@ -103,7 +100,6 @@ namespace Sibz.Lines.ECS.Systems
                     thisJoinEntity  = line.JoinPointA;
                 }
                 else if (joinB.IsJoined && Lines.Exists(LineJoinPoints[joinB.JoinToPointEntity].ParentEntity))
-
                 {
                     otherLineEntity = LineJoinPoints[joinB.JoinToPointEntity].ParentEntity;
                     otherLine       = Lines[otherLineEntity];
@@ -114,12 +110,8 @@ namespace Sibz.Lines.ECS.Systems
                     return;
                 }
 
-                // Connecting to ourself
-                if (otherLineEntity == lineEntity)
-                {
-                    Debug.LogWarning("Tried to connect to ourself");
-                    return;
-                }
+                // Connecting to our self
+                if (otherLineEntity == lineEntity) return;
 
                 // Recheck this line in case other join is joined too
                 Ecb.AddComponent<MergeCheck>(index, lineEntity);
@@ -133,8 +125,6 @@ namespace Sibz.Lines.ECS.Systems
                 MergeFrom(joinState, otherLineEntity, otherJoinEntity);
 
                 UpdateJoinPoints(thisJoinEntity, joinState, otherLine);
-
-                // TODO Destroy other line
             }
 
             private void UpdateJoinPoints(Entity thisJoinEntity, JoinState joinState, Line otherLine)
