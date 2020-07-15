@@ -1,10 +1,12 @@
 ﻿using Sibz.Lines.ECS.Components;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 
 namespace Sibz.Lines.ECS.Jobs
 {
+    [BurstCompile]
     public struct LineTriggerMeshRebuildJob : IJobParallelFor
     {
         [ReadOnly]

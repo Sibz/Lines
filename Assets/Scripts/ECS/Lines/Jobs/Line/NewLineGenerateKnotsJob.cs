@@ -1,5 +1,6 @@
 ﻿using Sibz.Lines.ECS.Components;
 using Sibz.Math;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -7,6 +8,7 @@ using Unity.Mathematics;
 
 namespace Sibz.Lines.ECS.Jobs
 {
+    [BurstCompile]
     public struct NewLineGenerateKnotsJob : IJobParallelFor
     {
         public LineTool LineTool;

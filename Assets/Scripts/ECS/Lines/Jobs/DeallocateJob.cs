@@ -1,8 +1,10 @@
-﻿using Unity.Collections;
+﻿using Unity.Burst;
+using Unity.Collections;
 using Unity.Jobs;
 
 namespace Sibz.Lines.ECS.Jobs
 {
+    [BurstCompile]
     public struct DeallocateJob<T> : IJob where T : struct
     {
         [ReadOnly, DeallocateOnJobCompletion]

@@ -1,12 +1,14 @@
 ﻿using System;
 using Sibz.Lines.ECS.Components;
 using Sibz.Lines.ECS.Events;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 
 namespace Sibz.Lines.ECS.Jobs
 {
+    [BurstCompile]
     public struct GatherLineWithJoinPointData : IJobParallelFor
     {
         [ReadOnly]

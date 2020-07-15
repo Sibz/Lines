@@ -1,9 +1,11 @@
 ﻿using Sibz.Lines.ECS.Components;
+using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
 
 namespace Sibz.Lines.ECS.Jobs
 {
+    [BurstCompile]
     public struct LineMeshRebuildJob
     {
         public DynamicBuffer<LineKnotData>     Knots;
