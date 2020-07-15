@@ -15,6 +15,7 @@ namespace Sibz.Lines.ECS.Jobs
         }
     }
 
+    [BurstCompile]
     public struct DeallocateJob<T, T2> : IJob
         where T : struct
         where T2 : struct
@@ -30,6 +31,7 @@ namespace Sibz.Lines.ECS.Jobs
         }
     }
 
+    [BurstCompile]
     public struct DeallocateJob<T, T2, T3> : IJob
         where T : struct
         where T2 : struct
@@ -49,6 +51,7 @@ namespace Sibz.Lines.ECS.Jobs
         }
     }
 
+    [BurstCompile]
     public struct DeallocateJob<T, T2, T3, T4> : IJob
         where T : struct
         where T2 : struct
