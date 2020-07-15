@@ -7,7 +7,7 @@ using Unity.Mathematics;
 
 namespace Sibz.Lines.ECS.Jobs
 {
-    public struct LineToolCreateLineJob
+    public struct NewLineCreateJob
     {
         public EntityManager      EntityManager;
         public NewLineCreateEvent NewLineCreateEvent;

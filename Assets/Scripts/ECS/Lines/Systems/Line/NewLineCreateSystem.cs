@@ -28,7 +28,7 @@ namespace Sibz.Lines.ECS.Systems
                .WithStructuralChanges()
                .ForEach((Entity eventEntity, ref NewLineCreateEvent newLineEvent) =>
                         {
-                            new LineToolCreateLineJob
+                            new NewLineCreateJob
                             {
                                 EntityManager      = EntityManager,
                                 NewLineCreateEvent = newLineEvent
