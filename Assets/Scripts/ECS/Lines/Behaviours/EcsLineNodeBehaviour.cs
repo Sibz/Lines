@@ -8,7 +8,6 @@ namespace Sibz.Lines.ECS.Behaviours
 {
     public class EcsLineNodeBehaviour : MonoBehaviour
     {
-        [SerializeField]
         public Entity JoinPoint;
 
         private Collider      col;
