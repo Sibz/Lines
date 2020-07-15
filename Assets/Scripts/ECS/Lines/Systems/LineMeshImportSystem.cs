@@ -27,7 +27,7 @@ namespace Sibz.Lines.ECS.Systems
                             var lineBehaviour =
                                 EntityManager.GetComponentObject<EcsLineBehaviour>(lineEntity);
                             var mesh      = new Mesh();
-                            int len       = vertexData.Length;
+                            var len       = vertexData.Length;
                             var vertices  = new Vector3[len];
                             var normals   = new Vector3[len];
                             var uvs       = new Vector2[len];

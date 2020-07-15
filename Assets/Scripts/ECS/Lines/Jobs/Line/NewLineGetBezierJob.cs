@@ -30,8 +30,8 @@ namespace Sibz.Lines.ECS.Jobs
             var jp1 = LineWithJoinData[index].JoinPointA;
             var jp2 = LineWithJoinData[index].JoinPointB;
 
-            bool pointAIsConnected = JoinPoints.Exists(jp1.JoinToPointEntity);
-            bool pointBIsConnected = JoinPoints.Exists(jp2.JoinToPointEntity);
+            var pointAIsConnected = JoinPoints.Exists(jp1.JoinToPointEntity);
+            var pointBIsConnected = JoinPoints.Exists(jp2.JoinToPointEntity);
 
             var pointA = jp1.Pivot;
             var pointB = jp2.Pivot;
@@ -45,13 +45,13 @@ namespace Sibz.Lines.ECS.Jobs
 
             // If join points invalid or not connected initialise to facing other point
             jp1.Direction = jp1.Direction.Equals(float3.zero)
-                            || float.IsNaN(jp1.Direction.x)
-                            || !pointBIsConnected && !pointAIsConnected
+                         || float.IsNaN(jp1.Direction.x)
+                         || !pointBIsConnected && !pointAIsConnected
                                 ? Normalize(pointB - pointA)
                                 : jp1.Direction;
             jp2.Direction = jp2.Direction.Equals(float3.zero)
-                            || float.IsNaN(jp2.Direction.x)
-                            || !pointAIsConnected && !pointBIsConnected
+                         || float.IsNaN(jp2.Direction.x)
+                         || !pointAIsConnected && !pointBIsConnected
                                 ? Normalize(pointA - pointB)
                                 : jp2.Direction;
 
@@ -116,8 +116,8 @@ namespace Sibz.Lines.ECS.Jobs
 
             static float3 Target(float3 c1, float3 c2, float h1, float h2, float s1, float s2, float r)
             {
-                float d  = Dist(c1, c2);
-                float ht = h1 * s1 * (2 - r) + h2 * s2 * (2 - r);
+                var d  = Dist(c1, c2);
+                var ht = h1 * s1 * (2 - r) + h2 * s2 * (2 - r);
                 return c1 + Normalize(c2 - c1) * (ht > d ? d * (h1 * s1 * (2 - r) / ht) : h1 * s1 * (2 - r));
             }
 
@@ -133,7 +133,7 @@ namespace Sibz.Lines.ECS.Jobs
 
             static float Distance(float3 p1, float3 p2, float3 forwards)
             {
-                float angle = AngleD(forwards, Normalize(p2 - p1));
+                var angle = AngleD(forwards, Normalize(p2 - p1));
                 angle = angle > 90 ? 90 + (angle - 90) / 2f : angle;
                 return Abs(Dist(p2, p1) / SinD(180 - 2 * angle) * SinD(angle));
             }

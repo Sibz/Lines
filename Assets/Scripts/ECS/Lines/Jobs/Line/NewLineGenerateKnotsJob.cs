@@ -57,14 +57,14 @@ namespace Sibz.Lines.ECS.Jobs
 
         private void SetKnotsForBezier(float3x3 b, bool invert = false)
         {
-            float lineDistance =
+            var lineDistance =
                 (math.distance(b.c0, b.c1) + math.distance(b.c1, b.c2) + math.distance(b.c0, b.c2)) / 2;
 
             var numberOfKnots = (int) math.ceil(lineDistance / lineProfile.KnotSpacing);
             for (var i = 0; i < numberOfKnots; i++)
             {
-                float t = (float) i / (numberOfKnots - 1);
-                var   p = Bezier.Bezier.GetVectorOnCurve(b, invert ? 1f - t : t);
+                var t = (float) i / (numberOfKnots - 1);
+                var p = Bezier.Bezier.GetVectorOnCurve(b, invert ? 1f - t : t);
                 // Avoid duplicates
                 if (knotData.Length == 0 ||
                     !p.IsCloseTo(knotData[knotData.Length - 1].Position, 0.01f))

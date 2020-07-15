@@ -19,7 +19,7 @@ namespace Sibz.Lines.ECS.Systems
 
         protected override void OnUpdate()
         {
-            int eventCount = eventQuery.CalculateEntityCount();
+            var eventCount = eventQuery.CalculateEntityCount();
 
             var lineWithJoinData =
                 new NativeArray<LineWithJoinPointData>(eventCount, Allocator.TempJob);

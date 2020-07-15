@@ -36,7 +36,7 @@ namespace Sibz.Lines.ECS.Jobs
             var otherJoinPoint = eventData.JoinPoint == joinData.Line.JoinPointA
                                      ? joinData.JoinPointB
                                      : joinData.JoinPointA;
-            bool otherEndIsJoinedToRequestedJoinToPoint =
+            var otherEndIsJoinedToRequestedJoinToPoint =
                 otherJoinPoint.JoinToPointEntity == eventData.JoinTo;
 
             thisJoinPoint.Pivot = eventData.Position;
@@ -46,7 +46,7 @@ namespace Sibz.Lines.ECS.Jobs
                                    : default;
 
             if (eventData.JoinTo != Entity.Null
-                && !otherEndIsJoinedToRequestedJoinToPoint)
+             && !otherEndIsJoinedToRequestedJoinToPoint)
             {
                 thisJoinPoint.Direction         = -newJoinPoint.Direction;
                 thisJoinPoint.JoinToPointEntity = eventData.JoinTo;

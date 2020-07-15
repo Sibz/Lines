@@ -18,17 +18,17 @@ namespace Sibz.Lines.ECS.Jobs
             VertexData.Clear();
             if (Knots.Length == 0) return;
 
-            var   up        = new float3(0, 1, 0);
-            float halfWidth = Profile.Width / 2f;
+            var up        = new float3(0, 1, 0);
+            var halfWidth = Profile.Width / 2f;
             for (var i = 0; i < Knots.Length; i++)
             {
                 var knot = Knots[i].Position;
-                var direction = i == 0 ? -EndDirections.c0 :
+                var direction = i == 0                ? -EndDirections.c0 :
                                 i == Knots.Length - 1 ? EndDirections.c1 :
-                                knot - Knots[i + 1].Position;
-                var   cross = math.normalize(math.cross(up, direction));
-                float zMod  = cross.z * halfWidth;
-                float xMod  = cross.x * halfWidth;
+                                                        knot - Knots[i + 1].Position;
+                var cross = math.normalize(math.cross(up, direction));
+                var zMod  = cross.z * halfWidth;
+                var xMod  = cross.x * halfWidth;
 
 
                 VertexData.Add(new MeshVertexData
@@ -44,7 +44,7 @@ namespace Sibz.Lines.ECS.Jobs
                                    Normal   = new float3(0, 1, 0),
                                    Uv       = new float2(0, (float) i / (Knots.Length - 1))
                                });
-                int vertexIndex1 = VertexData.Length - 1;
+                var vertexIndex1 = VertexData.Length - 1;
 
                 if (i == 0) continue;
 

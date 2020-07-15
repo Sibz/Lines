@@ -27,9 +27,9 @@ namespace Sibz.Lines.ECS
                                          .Where(x =>
                                                     (x.IsSubclassOf(typeof(SystemBase)) ||
                                                      x.IsSubclassOf(typeof(ComponentSystemBase)))
-                                                    && x != typeof(LineWorldSimGroup)
-                                                    && x != typeof(LineWorldPresGroup)
-                                                    && x != typeof(LineWorldInitGroup)))
+                                                 && x != typeof(LineWorldSimGroup)
+                                                 && x != typeof(LineWorldPresGroup)
+                                                 && x != typeof(LineWorldInitGroup)))
             {
                 var attr =
                     Attribute.GetCustomAttribute(type, typeof(UpdateInGroupAttribute)) as UpdateInGroupAttribute;
