@@ -31,6 +31,7 @@ namespace Sibz.Lines.ECS.Systems
 
                             var line = EntityManager.GetComponentData<Line>(lineTool.Data.LineEntity);
                             EntityManager.RemoveComponent<NewLine>(lineTool.Data.LineEntity);
+                            EntityManager.AddComponent<MergeCheck>(lineTool.Data.LineEntity);
                             lineTool = LineTool.Default();
                             SetSingleton(lineTool);
                         }).WithoutBurst().Run();
