@@ -11,7 +11,7 @@ namespace Sibz.Lines.ECS.Jobs
         public NativeArray<Entity> LineEntities;
 
         [ReadOnly]
-        public NativeArray<LineWithJoinPointData> LineWithJoinData;
+        public ComponentDataFromEntity<Line> Lines;
 
         [ReadOnly]
         public ComponentDataFromEntity<LineProfile> LineProfiles;
@@ -29,8 +29,8 @@ namespace Sibz.Lines.ECS.Jobs
                             };
 
             var meshBuildTriggerEntity = Ecb.Instantiate(index,
-                                                         LineProfiles.Exists(LineWithJoinData[index].Line.Profile)
-                                                             ? LineProfiles[LineWithJoinData[index].Line.Profile]
+                                                         LineProfiles.Exists(Lines[LineEntities[index]].Profile)
+                                                             ? LineProfiles[Lines[LineEntities[index]].Profile]
                                                                 .MeshBuildPrefab
                                                              : DefaultPrefab);
 

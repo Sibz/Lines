@@ -49,6 +49,29 @@ namespace Sibz.Lines.ECS.Components
             if (toEntity != Entity.Null) ecb.SetComponent(jobIndex, toEntity, toData);
         }
 
+        public static void UnJoinIfJoined(EntityCommandBuffer.Concurrent         ecb,
+                                          int                                    jobIndex,
+                                          ComponentDataFromEntity<LineJoinPoint> joinPoints,
+                                          Entity                                 oneSide)
+        {
+            var fromEntity = oneSide;
+            var fromData   = joinPoints[oneSide];
+
+            if (!fromData.IsJoined) return;
+
+            var toEntity = fromData.JoinToPointEntity;
+
+            if (!joinPoints.Exists(toEntity))
+            {
+                var toData = joinPoints[toEntity];
+                toData.JoinToPointEntity = Entity.Null;
+                ecb.SetComponent(jobIndex, toEntity, toData);
+            }
+
+            fromData.JoinToPointEntity = Entity.Null;
+            ecb.SetComponent(jobIndex, fromEntity, fromData);
+        }
+
         public static void UnJoin(EntityCommandBuffer ecb,
                                   ref LineJoinPoint   fromData, Entity fromEntity,
                                   ref LineJoinPoint   toData,   Entity toEntity)
@@ -97,6 +120,27 @@ namespace Sibz.Lines.ECS.Components
 
             Join(fromEntity, ref fromData, toEntity);
             Join(toEntity, ref toData, fromEntity);
+        }
+
+        public static void Join(EntityCommandBuffer.Concurrent         ecb,
+                                int                                    jobIndex,
+                                ComponentDataFromEntity<LineJoinPoint> joinPoints,
+                                Entity                                 fromEntity,
+                                Entity                                 toEntity,
+                                bool                                   withData = true,
+                                LineJoinPoint                          data     = default)
+        {
+            var fromData = withData ? data : joinPoints[fromEntity];
+            var toData   = joinPoints[toEntity];
+
+            UnJoinIfJoined(ecb, jobIndex, joinPoints, fromEntity);
+            UnJoinIfJoined(ecb, jobIndex, joinPoints, toEntity);
+
+            fromData.JoinToPointEntity = toEntity;
+            toData.JoinToPointEntity   = fromEntity;
+
+            ecb.SetComponent(jobIndex, fromEntity, fromData);
+            ecb.SetComponent(jobIndex, toEntity, toData);
         }
 
         public static void Join(

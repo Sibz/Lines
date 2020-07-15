@@ -8,7 +8,9 @@ namespace Sibz.Lines.ECS.Behaviours
 {
     public class EcsLineNodeBehaviour : MonoBehaviour
     {
-        public  Entity        JoinPoint;
+        [SerializeField]
+        public Entity JoinPoint;
+
         private Collider      col;
         public  LineJoinPoint JoinPointData => LineWorld.Em.GetComponentData<LineJoinPoint>(JoinPoint);
 
@@ -33,6 +35,12 @@ namespace Sibz.Lines.ECS.Behaviours
             {
                 tx.position = data.Pivot;
             }
+
+            if (data.IsJoined && gameObject.activeSelf)
+                gameObject.SetActive(false);
+
+            else if (!data.IsJoined && !gameObject.activeSelf)
+                gameObject.SetActive(true);
         }
 
         public void OnComplete()
@@ -53,10 +61,13 @@ namespace Sibz.Lines.ECS.Behaviours
         private IEnumerator SetInActiveEndOfFrame()
         {
             yield return new WaitForEndOfFrame();
-            var otherJoinData = LineWorld.Em.GetComponentData<LineJoinPoint>(JoinPointData.JoinToPointEntity);
-            gameObject.SetActive(false);
+            if (LineWorld.Em.Exists(JoinPointData.JoinToPointEntity))
+            {
+                var otherJoinData = LineWorld.Em.GetComponentData<LineJoinPoint>(JoinPointData.JoinToPointEntity);
+                LineWorld.Em.GetComponentObject<EcsLineBehaviour>(otherJoinData.ParentEntity)?.OnComplete();
+            }
 
-            LineWorld.Em.GetComponentObject<EcsLineBehaviour>(otherJoinData.ParentEntity)?.OnComplete();
+            gameObject.SetActive(false);
         }
     }
 }

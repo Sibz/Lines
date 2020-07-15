@@ -80,11 +80,11 @@ namespace Sibz.Lines.ECS.Systems
 
             Dependency = new LineTriggerMeshRebuildJob
                          {
-                             Ecb              = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
-                             LineEntities     = lineEntities,
-                             LineProfiles     = GetComponentDataFromEntity<LineProfile>(),
-                             LineWithJoinData = lineWithJoinData,
-                             DefaultPrefab    = LineDefaultMeshBuilderSystem.Prefab
+                             Ecb           = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             LineEntities  = lineEntities,
+                             LineProfiles  = GetComponentDataFromEntity<LineProfile>(),
+                             Lines         = GetComponentDataFromEntity<Line>(true),
+                             DefaultPrefab = LineDefaultMeshBuilderSystem.Prefab
                          }.Schedule(eventCount, 4, Dependency);
 
             Dependency = new DeallocateJob<Entity, LineWithJoinPointData, NewLineUpdateEvent>

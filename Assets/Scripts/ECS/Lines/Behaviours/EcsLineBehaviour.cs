@@ -1,4 +1,5 @@
-﻿using Unity.Entities;
+﻿using Sibz.Lines.ECS.Components;
+using Unity.Entities;
 using UnityEngine;
 
 namespace Sibz.Lines.ECS.Behaviours
@@ -30,13 +31,8 @@ namespace Sibz.Lines.ECS.Behaviours
         {
             if (!LineWorld.World.IsCreated) return;
 
-            // Use a destroy event so line and associated entities are removed
-            // and any joins can be unjoint
-            if (LineWorld.Em.Exists(EndNode1.JoinPoint)) LineWorld.Em.DestroyEntity(EndNode1.JoinPoint);
-
-            if (LineWorld.Em.Exists(EndNode2.JoinPoint)) LineWorld.Em.DestroyEntity(EndNode2.JoinPoint);
-
-            if (LineWorld.Em.Exists(LineEntity)) LineWorld.Em.DestroyEntity(LineEntity);
+            if (LineWorld.Em.Exists(LineEntity))
+                LineWorld.Em.AddComponent<Destroy>(LineEntity);
         }
 
         public void OnComplete()
