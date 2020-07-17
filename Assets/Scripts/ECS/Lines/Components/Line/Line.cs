@@ -21,6 +21,7 @@ namespace Sibz.Lines.ECS.Components
         public Entity Profile;
 
         private static GameObject prefab;
+        public float3 BoundingBoxSize;
 
         public static GameObject Prefab =>
             prefab == null
