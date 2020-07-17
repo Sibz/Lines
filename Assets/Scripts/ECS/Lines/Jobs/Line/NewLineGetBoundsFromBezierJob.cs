@@ -11,7 +11,7 @@ namespace Sibz.Lines.ECS.Jobs
         public NativeArray<BezierData> BezierData;
 
         [WriteOnly, NativeDisableParallelForRestriction]
-        public NativeArray<float3x2> Bounds;
+        public NativeArray<float3> Size;
 
         public void Execute(int index)
         {
@@ -22,7 +22,7 @@ namespace Sibz.Lines.ECS.Jobs
                              c2 = BezierData[index].B2.c0,
                              c3 = BezierData[index].B2.c2
                          };
-            Bounds[index] = new float3x2
+            var extents = new float3x2
                             {
                                 c0 =
                                 {
@@ -37,7 +37,8 @@ namespace Sibz.Lines.ECS.Jobs
                                     y = Max(points.c0.y, points.c1.y, points.c2.y, points.c3.y),
                                     z = Max(points.c0.z, points.c1.z, points.c2.z, points.c3.z)
                                 }
-                            };;
+                            };
+            Size[index] = extents.c1 - extents.c0;
         }
 
         private static float Min(float a, float b, float c, float d)
