@@ -85,7 +85,7 @@ namespace Sibz.Lines.ECS.Jobs
         private void UpdatePositionAndBounds(Line lineData, DynamicBuffer<LineKnotData> knotBuffer)
         {
             var min = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
-            var max = new float3();
+            var max = new float3(float.MinValue, float.MinValue, float.MinValue);
             for (var i = 0; i < knotBuffer.Length; i++)
             {
                 min.x = math.min(knotBuffer[i].Position.x, min.x);
