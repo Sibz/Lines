@@ -11,7 +11,7 @@ namespace Sibz.Lines.ECS.Jobs
         public NativeArray<BezierData> BezierData;
 
         [WriteOnly, NativeDisableParallelForRestriction]
-        public NativeArray<float3> Size;
+        public NativeArray<float3x2> BoundsArray;
 
         public void Execute(int index)
         {
@@ -22,23 +22,29 @@ namespace Sibz.Lines.ECS.Jobs
                              c2 = BezierData[index].B2.c0,
                              c3 = BezierData[index].B2.c2
                          };
-            var extents = new float3x2
-                            {
-                                c0 =
-                                {
-                                    x = Min(points.c0.x, points.c1.x, points.c2.x, points.c3.x),
-                                    y = Min(points.c0.y, points.c1.y, points.c2.y, points.c3.y),
-                                    z = Min(points.c0.z, points.c1.z, points.c2.z, points.c3.z)
-                                },
 
-                                c1 =
-                                {
-                                    x = Max(points.c0.x, points.c1.x, points.c2.x, points.c3.x),
-                                    y = Max(points.c0.y, points.c1.y, points.c2.y, points.c3.y),
-                                    z = Max(points.c0.z, points.c1.z, points.c2.z, points.c3.z)
-                                }
+            var extents = new float3x2
+                          {
+                              c0 =
+                              {
+                                  x = Min(points.c0.x, points.c1.x, points.c2.x, points.c3.x),
+                                  y = Min(points.c0.y, points.c1.y, points.c2.y, points.c3.y),
+                                  z = Min(points.c0.z, points.c1.z, points.c2.z, points.c3.z)
+                              },
+
+                              c1 =
+                              {
+                                  x = Max(points.c0.x, points.c1.x, points.c2.x, points.c3.x),
+                                  y = Max(points.c0.y, points.c1.y, points.c2.y, points.c3.y),
+                                  z = Max(points.c0.z, points.c1.z, points.c2.z, points.c3.z)
+                              }
+                          };
+
+            BoundsArray[index] = new float3x2
+                            {
+                                c0 = math.lerp(extents.c1, extents.c0, 0.5f),
+                                c1 = extents.c1 - extents.c0
                             };
-            Size[index] = extents.c1 - extents.c0;
         }
 
         private static float Min(float a, float b, float c, float d)

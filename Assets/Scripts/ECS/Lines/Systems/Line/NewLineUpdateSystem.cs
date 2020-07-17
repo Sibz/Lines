@@ -4,6 +4,7 @@ using Sibz.Lines.ECS.Jobs;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using Unity.Mathematics;
 
 namespace Sibz.Lines.ECS.Systems
 {
@@ -62,6 +63,14 @@ namespace Sibz.Lines.ECS.Systems
                              LineWithJoinData = lineWithJoinData
                          }.Schedule(eventCount, 4, Dependency);
 
+            var boundsArray = new NativeArray<float3x2>(eventCount, Allocator.TempJob);
+
+            Dependency = new NewLineGetBoundsFromBezierJob
+                         {
+                             BezierData = bezierData,
+                             BoundsArray     = boundsArray
+                         }.Schedule(eventCount, 4, Dependency);
+
             Dependency = new NewLineGenerateKnotsJob
                          {
                              BezierData       = bezierData,
@@ -87,11 +96,12 @@ namespace Sibz.Lines.ECS.Systems
                              DefaultPrefab = LineDefaultMeshBuilderSystem.Prefab
                          }.Schedule(eventCount, 4, Dependency);
 
-            Dependency = new DeallocateJob<Entity, LineWithJoinPointData, NewLineUpdateEvent>
+            Dependency = new DeallocateJob<Entity, LineWithJoinPointData, NewLineUpdateEvent, float3x2>
                          {
                              NativeArray1 = lineEntities,
                              NativeArray2 = lineWithJoinData,
-                             NativeArray3 = eventData
+                             NativeArray3 = eventData,
+                             NativeArray4 = boundsArray
                          }.Schedule(Dependency);
 
             LineEndSimBufferSystem.Instance.CreateCommandBuffer().DestroyEntity(eventQuery);
