@@ -33,10 +33,13 @@ namespace Sibz.Lines.ECS.Systems
                              Lines          = lines,
                              LineEntities   = linesToCheck,
                              LineJoinPoints = joinPoints,
+                             LineProfiles = GetComponentDataFromEntity<LineProfile>(),
                              LineKnotData   = knotBuffers,
-                             Ecb            = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent()
+                             Ecb            = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             DefaultProfile = LineProfile.Default()
                          }.Schedule(linesToCheck.Length, 4, Dependency);
 
+            // TODO only trigger this when lines are merged
             Dependency = new LineTriggerMeshRebuildJob
                          {
                              Ecb           = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
