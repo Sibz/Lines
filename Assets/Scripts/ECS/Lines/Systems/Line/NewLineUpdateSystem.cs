@@ -71,6 +71,16 @@ namespace Sibz.Lines.ECS.Systems
                              BoundsArray     = boundsArray
                          }.Schedule(eventCount, 4, Dependency);
 
+            Dependency = new NewLineUpdateLineEntityJob
+                         {
+                             LineEntities   = lineEntities,
+                             BoundsArray    = boundsArray,
+                             Lines          = GetComponentDataFromEntity<Line>(true),
+                             LineProfiles   = GetComponentDataFromEntity<LineProfile>(),
+                             Ecb            = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             DefaultProfile = LineProfile.Default()
+                         }.Schedule(eventCount, 4, Dependency);
+
             Dependency = new NewLineGenerateKnotsJob
                          {
                              BezierData       = bezierData,
