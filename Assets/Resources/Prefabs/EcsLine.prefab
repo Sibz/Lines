@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 3282094981747088808}
   - component: {fileID: 1912061479590631499}
   - component: {fileID: -555763731756699167}
+  - component: {fileID: 6459044246625349834}
   m_Layer: 0
   m_Name: EcsLine
   m_TagString: Untagged
@@ -98,6 +99,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8626717897034771482}
   m_Mesh: {fileID: 0}
+--- !u!65 &6459044246625349834
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8626717897034771482}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &566094696558895440
 PrefabInstance:
   m_ObjectHideFlags: 0

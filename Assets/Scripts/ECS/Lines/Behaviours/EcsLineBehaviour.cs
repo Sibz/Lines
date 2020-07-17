@@ -11,6 +11,7 @@ namespace Sibz.Lines.ECS.Behaviours
         public EcsLineNodeBehaviour EndNode2;
 
         public Entity LineEntity;
+        public Line LineData => LineWorld.Em.GetComponentData<Line>(LineEntity);
 
         public MeshRenderer MeshRenderer { get; private set; }
         public MeshFilter   MeshFilter   { get; private set; }
@@ -23,6 +24,8 @@ namespace Sibz.Lines.ECS.Behaviours
 
         public void OnDirty()
         {
+            transform.position = LineData.Position;
+            GetComponent<BoxCollider>().size = LineData.BoundingBoxSize;
             EndNode1.UpdateFromEntity();
             EndNode2.UpdateFromEntity();
         }
