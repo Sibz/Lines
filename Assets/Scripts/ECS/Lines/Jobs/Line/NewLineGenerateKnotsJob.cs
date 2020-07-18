@@ -11,16 +11,17 @@ namespace Sibz.Lines.ECS.Jobs
     [BurstCompile]
     public struct NewLineGenerateKnotsJob : IJobParallelFor
     {
-        public LineTool LineTool;
-
         [ReadOnly]
         public NativeArray<Entity> LineEntities;
 
-        [ReadOnly]
-        public NativeArray<LineWithJoinPointData> LineWithJoinData;
+        [NativeDisableParallelForRestriction]
+        public NativeArray<JoinPointPair> LineJoinPoints;
 
         [ReadOnly]
         public ComponentDataFromEntity<LineProfile> LineProfiles;
+
+        [ReadOnly]
+        public ComponentDataFromEntity<Line> Lines;
 
         [ReadOnly]
         public NativeArray<BezierData> BezierData;
@@ -28,14 +29,15 @@ namespace Sibz.Lines.ECS.Jobs
         [ReadOnly]
         public NativeArray<float2x4> HeightBezierData;
 
-        [NativeDisableParallelForRestriction]
+        [ReadOnly]
         public BufferFromEntity<LineKnotData> KnotData;
 
-        [NativeDisableParallelForRestriction]
-        private DynamicBuffer<LineKnotData> knotData;
+        public EntityCommandBuffer.Concurrent Ecb;
 
-        private Line        line;
-        private LineProfile lineProfile;
+        private Line                        line;
+        private LineProfile                 lineProfile;
+        [NativeDisableParallelForRestriction]
+        private DynamicBuffer<LineKnotData> newKnotData;
 
 
         public void Execute(int index)
@@ -44,9 +46,9 @@ namespace Sibz.Lines.ECS.Jobs
             // array, there for this is a duplicate and we can skip it.
             if (LineEntities.IndexOf<Entity>(LineEntities[index]) != index) return;
 
-            knotData = KnotData[LineEntities[index]];
-            knotData.Clear();
-            line = LineWithJoinData[index].Line;
+            newKnotData = Ecb.SetBuffer<LineKnotData>(index, LineEntities[index]);
+
+            line = Lines[LineEntities[index]];
 
             lineProfile = LineProfiles.Exists(line.Profile) ? LineProfiles[line.Profile] : LineProfile.Default();
 
@@ -61,16 +63,26 @@ namespace Sibz.Lines.ECS.Jobs
             SetKnotsForBezier(b2, true);
 
             AdjustHeight(HeightBezierData[index]);
+
+            var jpA = LineJoinPoints[index].A;
+            var jpB = LineJoinPoints[index].B;
+            if (newKnotData.Length > 0)
+            {
+                jpA.Pivot = newKnotData[0].Position;
+                jpB.Pivot = newKnotData[newKnotData.Length - 1].Position;
+            }
+
+            LineJoinPoints[index] = new JoinPointPair {A = jpA, B = jpB};
         }
 
         private void AdjustHeight(float2x4 bezier)
         {
-            var len = knotData.Length;
+            var len = newKnotData.Length;
             for (var i = 0; i < len; i++)
             {
-                var kd = knotData[i];
+                var kd = newKnotData[i];
                 kd.Position.y += Bezier.Bezier.GetVectorOnCurve(bezier, (float) i / (len - 1)).y;
-                knotData[i] = kd;
+                newKnotData[i]   =  kd;
             }
         }
 
@@ -85,12 +97,12 @@ namespace Sibz.Lines.ECS.Jobs
                 var t = (float) i / (numberOfKnots - 1);
                 var p = Bezier.Bezier.GetVectorOnCurve(b, invert ? 1f - t : t);
                 // Avoid duplicates
-                if (knotData.Length == 0 ||
-                    !p.IsCloseTo(knotData[knotData.Length - 1].Position, 0.01f))
-                    knotData.Add(new LineKnotData
-                                 {
-                                     Position = p
-                                 });
+                if (newKnotData.Length == 0 ||
+                    !p.IsCloseTo(newKnotData[newKnotData.Length - 1].Position, 0.01f))
+                    newKnotData.Add(new LineKnotData
+                                    {
+                                        Position = p
+                                    });
             }
         }
     }

@@ -13,13 +13,11 @@ namespace Sibz.Lines.ECS.Jobs
     {
         public LineTool LineTool;
 
-        [ReadOnly]
-        public NativeArray<LineWithJoinPointData> LineWithJoinData;
+        [NativeDisableParallelForRestriction]
+        public NativeArray<JoinPointPair> LineJoinPoints;
 
         [NativeDisableParallelForRestriction]
         public NativeArray<BezierData> BezierData;
-
-        public EntityCommandBuffer.Concurrent Ecb;
 
         [ReadOnly]
         public ComponentDataFromEntity<LineJoinPoint> JoinPoints;
@@ -29,8 +27,8 @@ namespace Sibz.Lines.ECS.Jobs
             var modifiers = LineTool.Data.Modifiers;
 
 
-            var jp1 = LineWithJoinData[index].JoinPointA;
-            var jp2 = LineWithJoinData[index].JoinPointB;
+            var jp1 = LineJoinPoints[index].A;
+            var jp2 = LineJoinPoints[index].B;
 
             var pointAIsConnected = JoinPoints.Exists(jp1.JoinToPointEntity);
             var pointBIsConnected = JoinPoints.Exists(jp2.JoinToPointEntity);
@@ -103,8 +101,12 @@ namespace Sibz.Lines.ECS.Jobs
                                     B2 = b2
                                 };
 
-            Ecb.SetComponent(index, LineWithJoinData[index].Line.JoinPointA, jp1);
-            Ecb.SetComponent(index, LineWithJoinData[index].Line.JoinPointB, jp2);
+
+            LineJoinPoints[index] = new JoinPointPair
+                                    {
+                                        A = jp1,
+                                        B = jp2
+                                    };
 
             float3 GetOrigin()
             {

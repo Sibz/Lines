@@ -21,10 +21,10 @@ namespace Sibz.Lines.ECS.Jobs
         public NativeArray<NewLineUpdateEvent> EventData;
 
         [WriteOnly, NativeDisableParallelForRestriction]
-        public NativeArray<LineWithJoinPointData> LineWithJoinData;
+        public NativeArray<Entity> LineEntities;
 
         [WriteOnly, NativeDisableParallelForRestriction]
-        public NativeArray<Entity> LineEntities;
+        public NativeArray<JoinPointPair> LineJoinPoints;
 
         public void Execute(int i)
         {
@@ -33,18 +33,17 @@ namespace Sibz.Lines.ECS.Jobs
 
             LineEntities[i] = lineEntity;
             var line = Lines[lineEntity];
-            LineWithJoinData[i] = new LineWithJoinPointData
-                                  {
-                                      Line = line,
-                                      JoinPointA =
-                                          JoinPoints.Exists(line.JoinPointA) // It should exist, but just in case
-                                              ? JoinPoints[line.JoinPointA]
-                                              : throw new InvalidOperationException("JoinPointA didn't exist"),
-                                      JoinPointB =
-                                          JoinPoints.Exists(line.JoinPointB) // It should exist, but just in case
-                                              ? JoinPoints[line.JoinPointB]
-                                              : throw new InvalidOperationException("JoinPointB didn't exist")
-                                  };
+            LineJoinPoints[i] = new JoinPointPair
+                                {
+                                    A =
+                                        JoinPoints.Exists(line.JoinPointA) // It should exist, but just in case
+                                            ? JoinPoints[line.JoinPointA]
+                                            : throw new InvalidOperationException("JoinPointA didn't exist"),
+                                    B =
+                                        JoinPoints.Exists(line.JoinPointB) // It should exist, but just in case
+                                            ? JoinPoints[line.JoinPointB]
+                                            : throw new InvalidOperationException("JoinPointB didn't exist")
+                                };
         }
     }
 }

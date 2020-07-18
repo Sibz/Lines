@@ -12,15 +12,15 @@ namespace Sibz.Lines.ECS.Jobs
 
         // We need the updated end positions
         [ReadOnly]
-        public NativeArray<LineWithJoinPointData> LineWithJoinData;
+        public NativeArray<JoinPointPair> LineJoinPoints;
 
         public NativeArray<float2x4> HeightBeziers;
 
         public void Execute(int index)
         {
             var modifiers = UpdatedNewLines[index].Modifiers;
-            var startPos  = LineWithJoinData[index].JoinPointA.Pivot;
-            var endPos    = LineWithJoinData[index].JoinPointB.Pivot;
+            var startPos  = LineJoinPoints[index].A.Pivot;
+            var endPos    = LineJoinPoints[index].B.Pivot;
             var length    = math.distance(startPos, endPos);
             var point1    = new float2(0, modifiers.EndHeights.x);
             var point2    = new float2(length, modifiers.EndHeights.y);

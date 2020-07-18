@@ -8,7 +8,7 @@ using Unity.Jobs;
 namespace Sibz.Lines.ECS.Jobs
 {
     [BurstCompile]
-    public struct NewLineUpdateJoinPointJob : IJobParallelFor
+    public struct NewLineGetUpdatedJoinPoints : IJobParallelFor
     {
         //[ReadOnly] [DeallocateOnJobCompletion] public NativeArray<NewLineJoinPointUpdateSystem.JoinPointUpdateData> JoinData;
         [ReadOnly]
@@ -18,7 +18,10 @@ namespace Sibz.Lines.ECS.Jobs
         public NativeArray<NewLineUpdateEvent> EventData;
 
         [NativeDisableParallelForRestriction]
-        public NativeArray<LineWithJoinPointData> LineWithJoinData;
+        public NativeArray<JoinPointPair> LineJoinPoints;
+
+        [ReadOnly]
+        public ComponentDataFromEntity<Line> Lines;
 
         public EntityCommandBuffer.Concurrent Ecb;
 
@@ -27,17 +30,18 @@ namespace Sibz.Lines.ECS.Jobs
             var eventData = EventData[index];
             if (!eventData.UpdateJoinPoints) return;
 
-            var joinData = LineWithJoinData[index];
+            var joinData = LineJoinPoints[index];
+            var line = Lines[eventData.LineEntity];
 
             // Are we trying to update this join to the same join
             // as the other join, AKA joining both ends to the same join point
             // This would be invalid so don't join in this case
-            var thisJoinPoint = eventData.JoinPoint == joinData.Line.JoinPointA
-                                    ? joinData.JoinPointA
-                                    : joinData.JoinPointB;
-            var otherJoinPoint = eventData.JoinPoint == joinData.Line.JoinPointA
-                                     ? joinData.JoinPointB
-                                     : joinData.JoinPointA;
+            var thisJoinPoint = eventData.JoinPoint == line.JoinPointA
+                                    ? joinData.A
+                                    : joinData.B;
+            var otherJoinPoint = eventData.JoinPoint == line.JoinPointA
+                                     ? joinData.B
+                                     : joinData.A;
             var otherEndIsJoinedToRequestedJoinToPoint =
                 otherJoinPoint.JoinToPointEntity == eventData.JoinTo;
 
@@ -53,8 +57,8 @@ namespace Sibz.Lines.ECS.Jobs
                 thisJoinPoint.Direction         = -newJoinPoint.Direction;
                 thisJoinPoint.JoinToPointEntity = eventData.JoinTo;
                 newJoinPoint.JoinToPointEntity  = eventData.JoinPoint;
-                Ecb.SetComponent(index, eventData.JoinPoint, thisJoinPoint);
-                Ecb.SetComponent(index, eventData.JoinTo, newJoinPoint);
+                /*Ecb.SetComponent(index, eventData.JoinPoint, thisJoinPoint);
+                Ecb.SetComponent(index, eventData.JoinTo, newJoinPoint);*/
             }
             else if (eventData.JoinTo == Entity.Null && thisJoinPoint.IsJoined)
             {
@@ -64,18 +68,18 @@ namespace Sibz.Lines.ECS.Jobs
                 var joinedToPoint = JoinPoints[thisJoinPoint.JoinToPointEntity];
                 LineJoinPoint.UnJoin(Ecb, index, ref thisJoinPoint, ref joinedToPoint);
             }
-            else
+            /*else
             {
-                Ecb.SetComponent(index, eventData.JoinPoint, thisJoinPoint);
-            }
+                //Ecb.SetComponent(index, eventData.JoinPoint, thisJoinPoint);
+            }*/
 
-            joinData.JoinPointA = eventData.JoinPoint == joinData.Line.JoinPointA
+            joinData.A = eventData.JoinPoint == line.JoinPointA
                                       ? thisJoinPoint
                                       : otherJoinPoint;
-            joinData.JoinPointB = eventData.JoinPoint == joinData.Line.JoinPointA
+            joinData.B = eventData.JoinPoint == line.JoinPointA
                                       ? otherJoinPoint
                                       : thisJoinPoint;
-            LineWithJoinData[index] = joinData;
+            LineJoinPoints[index] = joinData;
         }
     }
 }
