@@ -63,6 +63,16 @@ namespace Sibz.Lines.ECS.Systems
                              UpdatedNewLines = updatedNewLines
                          }.Schedule(eventCount, 4, Dependency);
 
+            var heightBeziers = new NativeArray<float2x4>(eventCount, Allocator.TempJob);
+
+            Dependency = new NewLineCreateHeightBezierJob
+                         {
+                             UpdatedNewLines = updatedNewLines,
+                             LineWithJoinData = lineWithJoinData,
+                             HeightBeziers = heightBeziers
+
+                         }.Schedule(eventCount, 4, Dependency);
+
             var bezierData = new NativeArray<BezierData>(eventCount, Allocator.TempJob);
 
             Dependency = new NewLineGetBezierJob
@@ -95,6 +105,7 @@ namespace Sibz.Lines.ECS.Systems
             Dependency = new NewLineGenerateKnotsJob
                          {
                              BezierData       = bezierData,
+                             HeightBezierData = heightBeziers,
                              KnotData         = GetBufferFromEntity<LineKnotData>(),
                              LineEntities     = lineEntities,
                              LineProfiles     = GetComponentDataFromEntity<LineProfile>(),
@@ -125,9 +136,11 @@ namespace Sibz.Lines.ECS.Systems
                              NativeArray4 = boundsArray
                          }.Schedule(Dependency);
 
-            new DeallocateJob<NewLine>
+            new DeallocateJob<NewLine, float2x4, BezierData>
                          {
-                             NativeArray1 = updatedNewLines
+                             NativeArray1 = updatedNewLines,
+                             NativeArray2 = heightBeziers,
+                             NativeArray3 = bezierData
                          }.Schedule(Dependency);
 
             LineEndSimBufferSystem.Instance.CreateCommandBuffer().DestroyEntity(eventQuery);
