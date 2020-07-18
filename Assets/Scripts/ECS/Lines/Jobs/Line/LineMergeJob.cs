@@ -75,14 +75,18 @@ namespace Sibz.Lines.ECS.Jobs
             var otherJoinEntity = thisJoin.JoinToPointEntity;
             var joinState       = GetJoinState(thisJoinEntity, otherJoinEntity, otherLine);
 
-            var buffer = MergeFrom(joinState, otherLineEntity);
+            MergeFrom(joinState,
+                      otherLineEntity,
+                      out var knotBuffer);
 
-            UpdatePositionAndBounds(line, buffer);
+            UpdatePositionAndBounds(knotBuffer);
 
             UpdateJoinPoints(thisJoinEntity, joinState, otherLine);
+
+            Ecb.SetComponent(index, LineEntities[index], line);
         }
 
-        private void UpdatePositionAndBounds(Line lineData, DynamicBuffer<LineKnotData> knotBuffer)
+        private void UpdatePositionAndBounds(DynamicBuffer<LineKnotData> knotBuffer)
         {
             var min = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
             var max = new float3(float.MinValue, float.MinValue, float.MinValue);
@@ -96,14 +100,12 @@ namespace Sibz.Lines.ECS.Jobs
                 max.z = math.max(knotBuffer[i].Position.z, max.z);
             }
 
-            lineData.Position = math.lerp(min, max, 0.5f);
-            lineData.BoundingBoxSize =
+            line.Position = math.lerp(min, max, 0.5f);
+            line.BoundingBoxSize =
                 max - min +
                 (LineProfiles.Exists(LineEntities[index])
                      ? LineProfiles[LineEntities[index]].Width * 2
                      : DefaultProfile.Width * 2);
-
-            Ecb.SetComponent(index, LineEntities[index], lineData);
         }
 
         private void UpdateJoinPoints(Entity thisJoinEntity, JoinState joinState, Line otherLine)
@@ -149,8 +151,9 @@ namespace Sibz.Lines.ECS.Jobs
             BtoB
         }
 
-        private DynamicBuffer<LineKnotData> MergeFrom(JoinState joinState,
-                                                      Entity    otherLineEntity)
+        private void MergeFrom(JoinState                       joinState,
+                               Entity                          otherLineEntity,
+                               out DynamicBuffer<LineKnotData> knotBuffer)
         {
             var thisKnots  = LineKnotData[lineEntity];
             var otherKnots = LineKnotData[otherLineEntity];
@@ -191,7 +194,7 @@ namespace Sibz.Lines.ECS.Jobs
                     break;
             }
 
-            return newKnots;
+            knotBuffer = newKnots;
         }
     }
 }
