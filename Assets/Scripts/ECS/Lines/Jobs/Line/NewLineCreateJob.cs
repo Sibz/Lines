@@ -21,6 +21,12 @@ namespace Sibz.Lines.ECS.Jobs
             // TODO: Load profile for line
             lineTool.Data.LineEntity = Line.New(NewLineCreateEvent.StartingPosition, Line.Prefab);
 
+            EntityManager.SetComponentData(lineTool.Data.LineEntity,
+                                           new NewLine
+                                           {
+                                               Modifiers = NewLineModifiers.Defaults()
+                                           });
+
             CreateLineJoinPoints(lineTool.Data);
 
             lineTool.State = LineToolState.Editing;
