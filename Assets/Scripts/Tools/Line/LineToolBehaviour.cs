@@ -5,6 +5,7 @@ using Sibz.Lines.ECS.Components;
 using Sibz.Lines.ECS.Enums;
 using Sibz.Lines.ECS.Events;
 using Unity.Entities;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace Sibz.Lines
@@ -38,8 +39,8 @@ namespace Sibz.Lines
 
         private EcsLineBehaviour EditingLineBehaviour =>
             LineWorld.Em.Exists(lineToolEntity)
-            && LineTool.State == LineToolState.Editing
-            && LineWorld.Em.Exists(LineTool.Data.LineEntity)
+         && LineTool.State == LineToolState.Editing
+         && LineWorld.Em.Exists(LineTool.Data.LineEntity)
                 ? LineWorld.Em.GetComponentObject<EcsLineBehaviour>(LineTool.Data.LineEntity)
                 : null;
 
@@ -75,7 +76,7 @@ namespace Sibz.Lines
                 {
                     EcsLineNodeBehaviour node;
                     if (snapNotifier.SnappedTo
-                        && (node = snapNotifier.SnappedTo.GetComponent<EcsLineNodeBehaviour>()) != null)
+                     && (node = snapNotifier.SnappedTo.GetComponent<EcsLineNodeBehaviour>()) != null)
                         NewLineCreateEvent.New(node.transform.position, node.JoinPoint);
                     else
                         NewLineCreateEvent.New(transform.position);
@@ -84,11 +85,11 @@ namespace Sibz.Lines
                 }
 
             if (Input.GetMouseButton(0) && draggingNewLine && EditingLineBehaviour
-                || Input.GetMouseButtonDown(0) && !draggingNewLine && EditingLineBehaviour)
+             || Input.GetMouseButtonDown(0) && !draggingNewLine && EditingLineBehaviour)
             {
                 EcsLineNodeBehaviour node;
                 if (snapNotifier.SnappedTo
-                    && (node = snapNotifier.SnappedTo.GetComponent<EcsLineNodeBehaviour>()) != null)
+                 && (node = snapNotifier.SnappedTo.GetComponent<EcsLineNodeBehaviour>()) != null)
                     NewLineUpdateEvent.New(EditingLineBehaviour.LineEntity, EditingLineBehaviour.EndNode2.JoinPoint,
                                            transform.position, node.JoinPoint);
                 else
@@ -151,6 +152,40 @@ namespace Sibz.Lines
                                                    Ratio = -0.05f
                                                }
                                            });
+
+            // Probably not the best key combinations, but it's just for testing at this stage.
+            if (Input.GetKeyUp(KeyCode.R))
+            {
+                NewLineUpdateEvent.New(LineTool.Data.LineEntity,
+                                       new NewLineModifiers
+                                       {
+                                           EndHeights = new float2(0.1f, 0)
+                                       });
+            }
+            if (Input.GetKeyUp(KeyCode.F))
+            {
+                NewLineUpdateEvent.New(LineTool.Data.LineEntity,
+                                       new NewLineModifiers
+                                       {
+                                           EndHeights = new float2(-0.1f, 0)
+                                       });
+            }
+            if (Input.GetKeyUp(KeyCode.T))
+            {
+                NewLineUpdateEvent.New(LineTool.Data.LineEntity,
+                                       new NewLineModifiers
+                                       {
+                                           EndHeights = new float2(0, 0.1f)
+                                       });
+            }
+            if (Input.GetKeyUp(KeyCode.G))
+            {
+                NewLineUpdateEvent.New(LineTool.Data.LineEntity,
+                                       new NewLineModifiers
+                                       {
+                                           EndHeights = new float2(0, -0.1f)
+                                       });
+            }
 
             /*if (Input.GetKeyUp(KeyCode.Tab))
             {
