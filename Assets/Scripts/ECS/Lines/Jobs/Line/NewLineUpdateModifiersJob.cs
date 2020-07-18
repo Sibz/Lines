@@ -28,8 +28,8 @@ namespace Sibz.Lines.ECS.Jobs
             var newLine = NewLines[LineEntities[index]];
             var modifiers = UpdateEvents[index].Modifiers;
 
-            newLine.Modifiers.EndHeights.x += modifiers.EndHeights.x;
-            newLine.Modifiers.EndHeights.y += modifiers.EndHeights.y;
+            newLine.Modifiers.EndHeights.x = modifiers.EndHeights.x;
+            newLine.Modifiers.EndHeights.y = modifiers.EndHeights.y;
             newLine.Modifiers.InnerHeights.x += modifiers.InnerHeights.x;
             newLine.Modifiers.InnerHeights.y += modifiers.InnerHeights.y;
 
