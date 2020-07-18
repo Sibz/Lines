@@ -34,7 +34,7 @@ namespace Sibz.Lines.ECS.Systems
 
             var lineEntities = new NativeArray<Entity>(eventCount, Allocator.TempJob);
 
-            Dependency = new GatherLineWithJoinPointData
+            Dependency = new LineGetJoinPointPairsJob
                          {
                              EventData      = eventData,
                              JoinPoints     = joinPoints,

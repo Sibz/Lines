@@ -9,7 +9,7 @@ using Unity.Jobs;
 namespace Sibz.Lines.ECS.Jobs
 {
     [BurstCompile]
-    public struct GatherLineWithJoinPointData : IJobParallelFor
+    public struct LineGetJoinPointPairsJob : IJobParallelFor
     {
         [ReadOnly]
         public ComponentDataFromEntity<Line> Lines;
