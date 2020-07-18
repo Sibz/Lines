@@ -12,6 +12,8 @@ namespace Sibz.Lines.ECS.Jobs
         [ReadOnly]
         public NativeArray<Entity> LineEntities;
         [ReadOnly]
+        public NativeArray<JoinPointPair> LineJoinPoints;
+        [ReadOnly]
         public NativeArray<NewLineUpdateEvent> UpdateEvents;
         [ReadOnly]
         public ComponentDataFromEntity<NewLine> NewLines;
@@ -28,8 +30,16 @@ namespace Sibz.Lines.ECS.Jobs
             var newLine = NewLines[LineEntities[index]];
             var modifiers = UpdateEvents[index].Modifiers;
 
-            newLine.Modifiers.EndHeights.x = modifiers.EndHeights.x;
-            newLine.Modifiers.EndHeights.y = modifiers.EndHeights.y;
+            if (!LineJoinPoints[index].A.IsJoined)
+            {
+                newLine.Modifiers.EndHeights.x = modifiers.EndHeights.x;
+            }
+
+            if (!LineJoinPoints[index].B.IsJoined)
+            {
+                newLine.Modifiers.EndHeights.y = modifiers.EndHeights.y;
+            }
+
             newLine.Modifiers.InnerHeights.x += modifiers.InnerHeights.x;
             newLine.Modifiers.InnerHeights.y += modifiers.InnerHeights.y;
 
