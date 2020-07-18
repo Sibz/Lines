@@ -52,6 +52,17 @@ namespace Sibz.Lines.ECS.Systems
                              JoinPoints       = joinPoints
                          }.Schedule(eventCount, 4, Dependency);
 
+            var updatedNewLines = new NativeArray<NewLine>(eventCount, Allocator.TempJob);
+
+            Dependency = new NewLineUpdateModifiersJob
+                         {
+                             Ecb             = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             NewLines        = GetComponentDataFromEntity<NewLine>(),
+                             LineEntities    = lineEntities,
+                             UpdateEvents    = eventData,
+                             UpdatedNewLines = updatedNewLines
+                         }.Schedule(eventCount, 4, Dependency);
+
             var bezierData = new NativeArray<BezierData>(eventCount, Allocator.TempJob);
 
             Dependency = new NewLineGetBezierJob
