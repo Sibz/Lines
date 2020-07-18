@@ -45,6 +45,15 @@ namespace Sibz.Bezier
             return math.lerp(math.lerp(math.lerp(v0, v1, t), b, t), math.lerp(b, math.lerp(v2, v3, t), t), t);
         }
 
+        public static float2 GetVectorOnCurve(float2x4 b, float t) =>
+            GetVectorOnCurve(b.c0, b.c1, b.c2, b.c3, t);
+
+        public static float2 GetVectorOnCurve(float2 v0, float2 v1, float2 v2, float2 v3, float t)
+        {
+            var b = math.lerp(v1, v2, t);
+            return math.lerp(math.lerp(math.lerp(v0, v1, t), b, t), math.lerp(b, math.lerp(v2, v3, t), t), t);
+        }
+
         public static float3 GetVectorOnCurve(float3x3 b, float t)
         {
             return GetVectorOnCurve(b.c0, b.c1, b.c2, t);
