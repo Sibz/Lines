@@ -9,7 +9,7 @@ using Unity.Mathematics;
 namespace Sibz.Lines.ECS.Jobs
 {
     [BurstCompile]
-    public struct NewLineGenerateKnotsJob : IJobParallelFor
+    public struct NewLineGenerateKnotsJob : IJob
     {
         [ReadOnly]
         public NativeArray<Entity> LineEntities;
@@ -32,57 +32,59 @@ namespace Sibz.Lines.ECS.Jobs
         [ReadOnly]
         public BufferFromEntity<LineKnotData> KnotData;
 
-        public EntityCommandBuffer.Concurrent Ecb;
+        private Line        line;
+        private LineProfile lineProfile;
 
-        private Line                        line;
-        private LineProfile                 lineProfile;
         [NativeDisableParallelForRestriction]
-        private DynamicBuffer<LineKnotData> newKnotData;
+        private DynamicBuffer<LineKnotData> knotData;
 
 
-        public void Execute(int index)
+        public void Execute()
         {
-            // If index is different, this means this line entity was already in the
-            // array, there for this is a duplicate and we can skip it.
-            if (LineEntities.IndexOf<Entity>(LineEntities[index]) != index) return;
-
-            newKnotData = Ecb.SetBuffer<LineKnotData>(index, LineEntities[index]);
-
-            line = Lines[LineEntities[index]];
-
-            lineProfile = LineProfiles.Exists(line.Profile) ? LineProfiles[line.Profile] : LineProfile.Default();
-
-            var b1 = BezierData[index].B1;
-            var b2 = BezierData[index].B2;
-
-            SetKnotsForBezier(b1);
-
-            if (!b1.c2.IsCloseTo(b2.c2, lineProfile.KnotSpacing))
-                SetKnotsForBezier(new float3x3(b1.c2, math.lerp(b1.c2, b2.c2, 0.5f), b2.c2));
-
-            SetKnotsForBezier(b2, true);
-
-            AdjustHeight(HeightBezierData[index]);
-
-            var jpA = LineJoinPoints[index].A;
-            var jpB = LineJoinPoints[index].B;
-            if (newKnotData.Length > 0)
+            for (var index = 0; index < LineEntities.Length; index++)
             {
-                jpA.Pivot = newKnotData[0].Position;
-                jpB.Pivot = newKnotData[newKnotData.Length - 1].Position;
-            }
+                // If index is different, this means this line entity was already in the
+                // array, there for this is a duplicate and we can skip it.
+                if (LineEntities.IndexOf<Entity>(LineEntities[index]) != index) return;
 
-            LineJoinPoints[index] = new JoinPointPair {A = jpA, B = jpB};
+                knotData = KnotData[LineEntities[index]];
+
+                line = Lines[LineEntities[index]];
+
+                lineProfile = LineProfiles.Exists(line.Profile) ? LineProfiles[line.Profile] : LineProfile.Default();
+
+                var b1 = BezierData[index].B1;
+                var b2 = BezierData[index].B2;
+
+                SetKnotsForBezier(b1);
+
+                if (!b1.c2.IsCloseTo(b2.c2, lineProfile.KnotSpacing))
+                    SetKnotsForBezier(new float3x3(b1.c2, math.lerp(b1.c2, b2.c2, 0.5f), b2.c2));
+
+                SetKnotsForBezier(b2, true);
+
+                AdjustHeight(HeightBezierData[index]);
+
+                var jpA = LineJoinPoints[index].A;
+                var jpB = LineJoinPoints[index].B;
+                if (knotData.Length > 0)
+                {
+                    jpA.Pivot = knotData[0].Position;
+                    jpB.Pivot = knotData[knotData.Length - 1].Position;
+                }
+
+                LineJoinPoints[index] = new JoinPointPair {A = jpA, B = jpB};
+            }
         }
 
         private void AdjustHeight(float2x4 bezier)
         {
-            var len = newKnotData.Length;
+            var len = knotData.Length;
             for (var i = 0; i < len; i++)
             {
-                var kd = newKnotData[i];
-                kd.Position.y += Bezier.Bezier.GetVectorOnCurve(bezier, (float) i / (len - 1)).y;
-                newKnotData[i]   =  kd;
+                var kd = knotData[i];
+                kd.Position.y  += Bezier.Bezier.GetVectorOnCurve(bezier, (float) i / (len - 1)).y;
+                knotData[i] =  kd;
             }
         }
 
@@ -97,12 +99,12 @@ namespace Sibz.Lines.ECS.Jobs
                 var t = (float) i / (numberOfKnots - 1);
                 var p = Bezier.Bezier.GetVectorOnCurve(b, invert ? 1f - t : t);
                 // Avoid duplicates
-                if (newKnotData.Length == 0 ||
-                    !p.IsCloseTo(newKnotData[newKnotData.Length - 1].Position, 0.01f))
-                    newKnotData.Add(new LineKnotData
-                                    {
-                                        Position = p
-                                    });
+                if (knotData.Length == 0 ||
+                    !p.IsCloseTo(knotData[knotData.Length - 1].Position, 0.01f))
+                    knotData.Add(new LineKnotData
+                                 {
+                                     Position = p
+                                 });
             }
         }
     }

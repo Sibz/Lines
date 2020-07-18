@@ -104,7 +104,6 @@ namespace Sibz.Lines.ECS.Systems
 
             Dependency = new NewLineGenerateKnotsJob
                          {
-                             Ecb              = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
                              BezierData       = bezierData,
                              HeightBezierData = heightBeziers,
                              KnotData         = GetBufferFromEntity<LineKnotData>(),
@@ -112,7 +111,7 @@ namespace Sibz.Lines.ECS.Systems
                              LineProfiles     = GetComponentDataFromEntity<LineProfile>(),
                              LineJoinPoints   = lineJoinPoints,
                              Lines            = GetComponentDataFromEntity<Line>()
-                         }.Schedule(eventCount, 4, Dependency);
+                         }.Schedule(Dependency);
 
             Dependency = new NewLineUpdateJoinPointsJob
                          {
