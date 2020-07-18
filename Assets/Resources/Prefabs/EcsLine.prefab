@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 1912061479590631499}
   - component: {fileID: -555763731756699167}
   - component: {fileID: 6459044246625349834}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: EcsLine
   m_TagString: Untagged
   m_Icon: {fileID: 0}

@@ -16,7 +16,7 @@ public class MoveToCursor : MonoBehaviour
     private void Update()
     {
         var ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        if (terrainCollider.Raycast(ray, out var hit, Mathf.Infinity))
+        if (Physics.Raycast(ray, out var hit, Mathf.Infinity, LayerMask.GetMask("Interactive", "Nodes")))
             transform.position = hit.point + Vector3.up * 0.01f;
     }
 }
