@@ -13,9 +13,6 @@ namespace Sibz.Lines.ECS.Jobs
         [ReadOnly]
         public NativeArray<NewLine> UpdatedNewLines;
 
-        [ReadOnly]
-        public NativeArray<Entity> LineEntities;
-
         // We need the updated end positions
         [ReadOnly]
         public NativeArray<LineWithJoinPointData> LineWithJoinData;
