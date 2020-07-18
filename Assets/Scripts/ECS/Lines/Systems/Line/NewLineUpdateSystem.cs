@@ -117,12 +117,17 @@ namespace Sibz.Lines.ECS.Systems
                              DefaultPrefab = LineDefaultMeshBuilderSystem.Prefab
                          }.Schedule(eventCount, 4, Dependency);
 
-            Dependency = new DeallocateJob<Entity, LineWithJoinPointData, NewLineUpdateEvent, float3x2>
+            new DeallocateJob<Entity, LineWithJoinPointData, NewLineUpdateEvent, float3x2>
                          {
                              NativeArray1 = lineEntities,
                              NativeArray2 = lineWithJoinData,
                              NativeArray3 = eventData,
                              NativeArray4 = boundsArray
+                         }.Schedule(Dependency);
+
+            new DeallocateJob<NewLine>
+                         {
+                             NativeArray1 = updatedNewLines
                          }.Schedule(Dependency);
 
             LineEndSimBufferSystem.Instance.CreateCommandBuffer().DestroyEntity(eventQuery);
