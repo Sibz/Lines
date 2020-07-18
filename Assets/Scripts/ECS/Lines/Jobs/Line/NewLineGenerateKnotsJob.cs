@@ -22,8 +22,11 @@ namespace Sibz.Lines.ECS.Jobs
         [ReadOnly]
         public ComponentDataFromEntity<LineProfile> LineProfiles;
 
-        [ReadOnly, DeallocateOnJobCompletion]
+        [ReadOnly]
         public NativeArray<BezierData> BezierData;
+
+        [ReadOnly]
+        public NativeArray<float2x4> HeightBezierData;
 
         [NativeDisableParallelForRestriction]
         public BufferFromEntity<LineKnotData> KnotData;
@@ -33,6 +36,7 @@ namespace Sibz.Lines.ECS.Jobs
 
         private Line        line;
         private LineProfile lineProfile;
+
 
         public void Execute(int index)
         {
@@ -55,6 +59,19 @@ namespace Sibz.Lines.ECS.Jobs
                 SetKnotsForBezier(new float3x3(b1.c2, math.lerp(b1.c2, b2.c2, 0.5f), b2.c2));
 
             SetKnotsForBezier(b2, true);
+
+            AdjustHeight(HeightBezierData[index]);
+        }
+
+        private void AdjustHeight(float2x4 bezier)
+        {
+            var len = knotData.Length;
+            for (var i = 0; i < len; i++)
+            {
+                var kd = knotData[i];
+                kd.Position.y += Bezier.Bezier.GetVectorOnCurve(bezier, (float) i / (len - 1)).y;
+                knotData[i] = kd;
+            }
         }
 
         private void SetKnotsForBezier(float3x3 b, bool invert = false)
