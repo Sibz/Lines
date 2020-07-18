@@ -57,8 +57,8 @@ namespace Sibz.Lines.ECS.Jobs
                 thisJoinPoint.Direction         = -newJoinPoint.Direction;
                 thisJoinPoint.JoinToPointEntity = eventData.JoinTo;
                 newJoinPoint.JoinToPointEntity  = eventData.JoinPoint;
-                /*Ecb.SetComponent(index, eventData.JoinPoint, thisJoinPoint);
-                Ecb.SetComponent(index, eventData.JoinTo, newJoinPoint);*/
+                /*Ecb.SetComponent(index, eventData.JoinPoint, thisJoinPoint);*/
+                Ecb.SetComponent(index, eventData.JoinTo, newJoinPoint);
             }
             else if (eventData.JoinTo == Entity.Null && thisJoinPoint.IsJoined)
             {
