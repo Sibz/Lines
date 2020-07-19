@@ -1,4 +1,5 @@
 ﻿using Unity.Entities;
+using Unity.Mathematics;
 
 namespace Sibz.Lines.ECS.Components
 {
@@ -12,14 +13,35 @@ namespace Sibz.Lines.ECS.Components
         public float  KnotSpacing;
         public Entity MeshBuildPrefab;
         public float  Width;
+        public ProfileTerrainConstraints TerrainConstraints;
+
+        public struct ProfileTerrainConstraints
+        {
+            public float SideCuttingAngle;
+            public float EndCuttingAngle;
+            public float SideRiseAngle;
+            public float EndRiseAngle;
+            public float MaxDepth;
+            public float MaxRise;
+        }
 
         public static LineProfile Default()
         {
+            const float fortyFiveDegreesInRadians = math.PI / 4;
             return new LineProfile
                    {
                        Width           = 1f,
                        KnotSpacing     = 0.25f,
-                       MeshBuildPrefab = Entity.Null
+                       MeshBuildPrefab = Entity.Null,
+                       TerrainConstraints =
+                       {
+                           MaxDepth = 5,
+                           MaxRise = 5,
+                           SideCuttingAngle = fortyFiveDegreesInRadians,
+                           EndCuttingAngle = fortyFiveDegreesInRadians,
+                           SideRiseAngle = fortyFiveDegreesInRadians,
+                           EndRiseAngle = fortyFiveDegreesInRadians
+                       }
                    };
         }
     }

@@ -13,7 +13,8 @@ namespace Sibz.Lines.ECS.Components
                                          typeof(LineKnotData),
                                          typeof(MeshTriangleData),
                                          typeof(MeshVertexData),
-                                         typeof(NewLine));
+                                         typeof(NewLine),
+                                         typeof(LineTerrainMinMaxHeightMap));
 
         public float3 Position;
         public Entity JoinPointA;

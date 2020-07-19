@@ -29,7 +29,7 @@ namespace Sibz.Lines.ECS.Jobs
         [ReadOnly]
         public NativeArray<float2x4> HeightBezierData;
 
-        [ReadOnly]
+        [NativeDisableParallelForRestriction]
         public BufferFromEntity<LineKnotData> KnotData;
 
         private Line        line;
@@ -48,6 +48,7 @@ namespace Sibz.Lines.ECS.Jobs
                 if (LineEntities.IndexOf<Entity>(LineEntities[index]) != index) return;
 
                 knotData = KnotData[LineEntities[index]];
+                knotData.Clear();
 
                 line = Lines[LineEntities[index]];
 

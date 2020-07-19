@@ -27,6 +27,7 @@ namespace Sibz.Lines
 
 
         private bool draggingNewLine;
+        private float3 lastUpdatePosition;
 
         private Entity lineToolEntity;
 
@@ -87,14 +88,19 @@ namespace Sibz.Lines
             if (Input.GetMouseButton(0) && draggingNewLine && EditingLineBehaviour
              || Input.GetMouseButtonDown(0) && !draggingNewLine && EditingLineBehaviour)
             {
-                EcsLineNodeBehaviour node;
-                if (snapNotifier.SnappedTo
-                 && (node = snapNotifier.SnappedTo.GetComponent<EcsLineNodeBehaviour>()) != null)
-                    NewLineUpdateEvent.New(EditingLineBehaviour.LineEntity, EditingLineBehaviour.EndNode2.JoinPoint,
-                                           transform.position, node.JoinPoint);
-                else
-                    NewLineUpdateEvent.New(EditingLineBehaviour.LineEntity, EditingLineBehaviour.EndNode2.JoinPoint,
-                                           transform.position);
+                if (Time.frameCount % 3 == 0 && !lastUpdatePosition.IsCloseTo(transform.position))
+                {
+                    draggingNewLine = true;
+                    EcsLineNodeBehaviour node;
+                    lastUpdatePosition = transform.position;
+                    if (snapNotifier.SnappedTo
+                     && (node = snapNotifier.SnappedTo.GetComponent<EcsLineNodeBehaviour>()) != null)
+                        NewLineUpdateEvent.New(EditingLineBehaviour.LineEntity, EditingLineBehaviour.EndNode2.JoinPoint,
+                                               lastUpdatePosition, node.JoinPoint);
+                    else
+                        NewLineUpdateEvent.New(EditingLineBehaviour.LineEntity, EditingLineBehaviour.EndNode2.JoinPoint,
+                                               lastUpdatePosition);
+                }
             }
 
             if (Input.GetMouseButtonUp(0)) draggingNewLine = false;

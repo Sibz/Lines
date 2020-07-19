@@ -5,6 +5,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
+using UnityEngine;
 
 namespace Sibz.Lines.ECS.Systems
 {
@@ -112,6 +113,21 @@ namespace Sibz.Lines.ECS.Systems
                              LineJoinPoints   = lineJoinPoints,
                              Lines            = GetComponentDataFromEntity<Line>()
                          }.Schedule(Dependency);
+
+            Dependency = new NewLineGenerateMinMaxHeightMapJob
+                         {
+                             Ecb = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             LineEntities = lineEntities,
+                             LineProfiles = GetComponentDataFromEntity<LineProfile>(true),
+                             Lines = GetComponentDataFromEntity<Line>(true),
+                             KnotData = GetBufferFromEntity<LineKnotData>(),
+                             HeightMaps = GetBufferFromEntity<LineTerrainMinMaxHeightMap>(),
+                             BoundsArray = boundsArray,
+                             DefaultProfile = LineProfile.Default(),
+                             TerrainSize2 = Terrain.activeTerrain.terrainData.size,
+                             HeightMapResolution = Terrain.activeTerrain.terrainData.heightmapResolution
+
+                         }.Schedule(eventCount, 4, Dependency);
 
             Dependency = new NewLineUpdateJoinPointsJob
                          {
