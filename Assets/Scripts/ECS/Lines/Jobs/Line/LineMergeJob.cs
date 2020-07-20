@@ -20,7 +20,7 @@ namespace Sibz.Lines.ECS.Jobs
         [ReadOnly]
         public ComponentDataFromEntity<LineProfile> LineProfiles;
 
-        [ReadOnly]
+        [NativeDisableParallelForRestriction]
         public BufferFromEntity<LineKnotData> LineKnotData;
 
         public NativeArray<Entity>            LineEntities;
@@ -76,18 +76,18 @@ namespace Sibz.Lines.ECS.Jobs
             var joinState       = GetJoinState(thisJoinEntity, otherJoinEntity, otherLine);
 
             MergeFrom(joinState,
-                      otherLineEntity,
-                      out var knotBuffer);
+                      otherLineEntity);
 
-            UpdatePositionAndBounds(knotBuffer);
+            UpdatePositionAndBounds();
 
             UpdateJoinPoints(thisJoinEntity, joinState, otherLine);
 
             Ecb.SetComponent(index, LineEntities[index], line);
         }
 
-        private void UpdatePositionAndBounds(DynamicBuffer<LineKnotData> knotBuffer)
+        private void UpdatePositionAndBounds()
         {
+            var knotBuffer = LineKnotData[lineEntity];
             var min = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
             var max = new float3(float.MinValue, float.MinValue, float.MinValue);
             for (var i = 0; i < knotBuffer.Length; i++)
@@ -152,49 +152,51 @@ namespace Sibz.Lines.ECS.Jobs
         }
 
         private void MergeFrom(JoinState                       joinState,
-                               Entity                          otherLineEntity,
-                               out DynamicBuffer<LineKnotData> knotBuffer)
+                               Entity                          otherLineEntity)
         {
             var thisKnots  = LineKnotData[lineEntity];
+            var thisKnotArray = thisKnots.ToNativeArray(Allocator.Temp);
             var otherKnots = LineKnotData[otherLineEntity];
-            var newKnots   = Ecb.SetBuffer<LineKnotData>(index, lineEntity);
+            var otherKnotsArray = otherKnots.ToNativeArray(Allocator.Temp);
+            //var newKnots   = Ecb.SetBuffer<LineKnotData>(index, lineEntity);
+            thisKnots.Clear();
 
-            void AddKnotsInSameOrder(DynamicBuffer<LineKnotData> knots, bool skipFirst = false)
+            void AddKnotsInSameOrder(NativeArray<LineKnotData> knots, bool skipFirst = false)
             {
                 var len = knots.Length;
                 for (var i = skipFirst ? 1 : 0; i < len; i++)
-                    newKnots.Add(knots[i]);
+                    thisKnots.Add(knots[i]);
             }
 
-            void AddKnotsInReverseOrder(DynamicBuffer<LineKnotData> knots, bool skipFirst = false)
+            void AddKnotsInReverseOrder(NativeArray<LineKnotData> knots, bool skipFirst = false)
             {
                 var len = knots.Length;
                 for (var i = len - (skipFirst ? 2 : 1); i >= 0; i--) // -2 as to skip the first knot
-                    newKnots.Add(knots[i]);
+                    thisKnots.Add(knots[i]);
             }
 
             // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
             switch (joinState)
             {
                 case JoinState.BtoA:
-                    AddKnotsInSameOrder(thisKnots);
-                    AddKnotsInSameOrder(otherKnots, true);
+                    AddKnotsInSameOrder(thisKnotArray);
+                    AddKnotsInSameOrder(otherKnotsArray, true);
                     break;
                 case JoinState.BtoB:
-                    AddKnotsInSameOrder(thisKnots);
-                    AddKnotsInReverseOrder(otherKnots, true);
+                    AddKnotsInSameOrder(thisKnotArray);
+                    AddKnotsInReverseOrder(otherKnotsArray, true);
                     break;
                 case JoinState.AtoB:
-                    AddKnotsInSameOrder(otherKnots);
-                    AddKnotsInSameOrder(thisKnots, true);
+                    AddKnotsInSameOrder(otherKnotsArray);
+                    AddKnotsInSameOrder(thisKnotArray, true);
                     break;
                 case JoinState.AtoA:
-                    AddKnotsInReverseOrder(otherKnots);
-                    AddKnotsInSameOrder(thisKnots, true);
+                    AddKnotsInReverseOrder(otherKnotsArray);
+                    AddKnotsInSameOrder(thisKnotArray, true);
                     break;
             }
 
-            knotBuffer = newKnots;
+
         }
     }
 }

@@ -88,7 +88,7 @@ namespace Sibz.Lines
             if (Input.GetMouseButton(0) && draggingNewLine && EditingLineBehaviour
              || Input.GetMouseButtonDown(0) && !draggingNewLine && EditingLineBehaviour)
             {
-                if (Time.frameCount % 3 == 0 && !lastUpdatePosition.IsCloseTo(transform.position))
+                if ((Time.frameCount % 3 == 0 || Input.GetMouseButtonDown(0)) && !lastUpdatePosition.IsCloseTo(transform.position))
                 {
                     draggingNewLine = true;
                     EcsLineNodeBehaviour node;
@@ -103,7 +103,11 @@ namespace Sibz.Lines
                 }
             }
 
-            if (Input.GetMouseButtonUp(0)) draggingNewLine = false;
+            if (Input.GetMouseButtonUp(0))
+            {
+                Terrain.activeTerrain.terrainData.SyncHeightmap();
+                draggingNewLine = false;
+            }
 
             if (Input.GetKey(KeyCode.LeftControl) && Input.mouseScrollDelta != Vector2.zero)
                 LineToolModChangeEvent.New(new LineToolData.ToolModifiers

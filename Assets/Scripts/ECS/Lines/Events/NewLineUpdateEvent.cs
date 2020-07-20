@@ -25,6 +25,7 @@ namespace Sibz.Lines.ECS.Events
                                                       UpdateJoinPoints = true
                                                   });
             return entity;
+
         }
 
         public static Entity New(Entity lineEntity)

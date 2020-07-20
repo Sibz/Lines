@@ -4,6 +4,8 @@ using Sibz.Lines.ECS.Jobs;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using Unity.Mathematics;
+using UnityEngine;
 
 namespace Sibz.Lines.ECS.Systems
 {
@@ -21,7 +23,7 @@ namespace Sibz.Lines.ECS.Systems
         {
             var joinPoints   = GetComponentDataFromEntity<LineJoinPoint>(true);
             var lines        = GetComponentDataFromEntity<Line>(true);
-            var knotBuffers  = GetBufferFromEntity<LineKnotData>(true);
+            var knotBuffers  = GetBufferFromEntity<LineKnotData>();
             var linesToCheck = mergeCheckQuery.ToEntityArray(Allocator.TempJob);
             Dependency.Complete();
             LineEndSimBufferSystem.Instance
@@ -37,6 +39,22 @@ namespace Sibz.Lines.ECS.Systems
                              LineKnotData   = knotBuffers,
                              Ecb            = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
                              DefaultProfile = LineProfile.Default()
+                         }.Schedule(linesToCheck.Length, 4, Dependency);
+
+            var boundsArray = new NativeArray<float3x2>(linesToCheck.Length, Allocator.TempJob);
+            Dependency = new NewLineGenerateMinMaxHeightMapJob
+                         {
+                             Ecb                 = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             LineEntities        = linesToCheck,
+                             LineProfiles        = GetComponentDataFromEntity<LineProfile>(true),
+                             Lines               = GetComponentDataFromEntity<Line>(true),
+                             KnotData            = GetBufferFromEntity<LineKnotData>(true),
+                             HeightMaps          = GetBufferFromEntity<LineTerrainMinMaxHeightMap>(),
+                             BoundsArray         = boundsArray,
+                             DefaultProfile      = LineProfile.Default(),
+                             TerrainSize2        = Terrain.activeTerrain.terrainData.size,
+                             HeightMapResolution = Terrain.activeTerrain.terrainData.heightmapResolution
+
                          }.Schedule(linesToCheck.Length, 4, Dependency);
 
             // TODO only trigger this when lines are merged
@@ -55,9 +73,10 @@ namespace Sibz.Lines.ECS.Systems
                              LineEntities = linesToCheck
                          }.Schedule(linesToCheck.Length, 4, Dependency);
 
-            Dependency = new DeallocateJob<Entity>
+            Dependency = new DeallocateJob<Entity, float3x2>
                          {
-                             NativeArray1 = linesToCheck
+                             NativeArray1 = linesToCheck,
+                             NativeArray2 = boundsArray
                          }.Schedule(Dependency);
 
             LineEndSimBufferSystem.Instance.AddJobHandleForProducer(Dependency);

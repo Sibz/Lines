@@ -55,44 +55,51 @@ namespace Sibz.Lines.ECS.Jobs
                               : DefaultProfile;
             knotData = KnotData[LineEntities[index]];
 
-            bounds   = BoundsArray[index];
+            bounds = BoundsArray[index];
             heightMap =
                 HeightMaps
                     [LineEntities[index]]; //Ecb.SetBuffer<LineTerrainMinMaxHeightMap>(index, LineEntities[index]);
             heightMap.Clear();
-            if (knotData.Length == 0)
+            if (knotData.Length < 2)
                 return;
 
-            int2 lowest = new int2(int.MaxValue, int.MaxValue);
-            int2 highest = new int2(int.MinValue, int.MinValue);
-            //for (int i = 0; i < knotData.Length; i++)
-            //{
-                ToHeightMapPos(knotData[0].Position, out int2 hMapPos);
-                lowest.x = math.min(hMapPos.x, lowest.x);
-                lowest.y = math.min(hMapPos.y, lowest.y);
-                highest.x = math.max(hMapPos.x, highest.x);
-                highest.y = math.max(hMapPos.y, highest.y);
-                heightMap.Add(new LineTerrainMinMaxHeightMap
-                              {
-                                  Position = hMapPos,
-                                  Min = 0.1f,
-                                  Max = 0.1f
-                              });
-                ToHeightMapPos(knotData[knotData.Length-1].Position, out  hMapPos);
-                lowest.x  = math.min(hMapPos.x, lowest.x);
-                lowest.y  = math.min(hMapPos.y, lowest.y);
-                highest.x = math.max(hMapPos.x, highest.x);
-                highest.y = math.max(hMapPos.y, highest.y);
-                heightMap.Add(new LineTerrainMinMaxHeightMap
-                              {
-                                  Position = hMapPos,
-                                  Min      = 0.1f,
-                                  Max      = 0.1f
-                              });
-            //}
+            ToHeightMapPos(knotData[0].Position, out int2 lowest);
+            int2            highest         = lowest;
+            NativeList<int> processedPoints = new NativeList<int>(Allocator.Temp);
+            for (int i = 1; i < knotData.Length; i++)
+            {
+                var lastKnot = knotData[i - 1];
+                ToHeightMapPos(lastKnot.Position, out int2 lastHMapPos);
+                ToHeightMapPos(knotData[i].Position, out int2 hMapPos);
+                var dist = math.distance(lastHMapPos, hMapPos);
+                for (int j = 0; j < dist; j++)
+                {
+                    var lerped =  math.lerp(lastHMapPos, hMapPos, j / dist);
+                    var pointToAdd = new int2
+                                     {
+                                         x = (int) lerped.x,
+                                         y = (int) lerped.y
+                                     };
+                    if (processedPoints.Contains(pointToAdd.GetHashCode()))
+                        continue;
+                    processedPoints.Add(pointToAdd.GetHashCode());
+                    lowest.x  = math.min(pointToAdd.x, lowest.x);
+                    lowest.y  = math.min(pointToAdd.y, lowest.y);
+                    highest.x = math.max(pointToAdd.x, highest.x);
+                    highest.y = math.max(pointToAdd.y, highest.y);
+
+                    heightMap.Add(new LineTerrainMinMaxHeightMap
+                                  {
+                                      Position = pointToAdd,
+                                      Min      = knotData[i].Position.y / TerrainSize2.y,
+                                      Max      = knotData[i].Position.y / TerrainSize2.y
+                                  });
+                }
+            }
+
             Ecb.AddComponent(index, LineEntities[index], new HeightMapChange
                                                          {
-                                                             Size          = highest-lowest,
+                                                             Size          = highest - lowest,
                                                              StartPosition = lowest
                                                          });
 
@@ -158,10 +165,10 @@ namespace Sibz.Lines.ECS.Jobs
 
         {
             return new int2
-                           {
-                               x = (int) math.floor(worldPos.x / TerrainSize2.x * HeightMapResolution),
-                               y = (int) math.floor(worldPos.z / TerrainSize2.z * HeightMapResolution),
-                           };
+                   {
+                       x = (int) math.floor(worldPos.x / TerrainSize2.x * HeightMapResolution),
+                       y = (int) math.floor(worldPos.z / TerrainSize2.z * HeightMapResolution),
+                   };
         }
 
         private void GetBoundsCornerPosition(out int2 boundsPos)
