@@ -23,7 +23,7 @@ namespace Sibz.Lines.ECS.Systems
                             for (int y = 0; y < item.Size.y; y++)
                             {
                                 var hashCode =
-                                    new int2(x + item.StartPosition.x, y + item.StartPosition.x).GetHashCode();
+                                    new int2(x + item.StartPosition.x, y + item.StartPosition.y).GetHashCode();
                                 heights[x, y] = h[hashCode];
                             }
 
