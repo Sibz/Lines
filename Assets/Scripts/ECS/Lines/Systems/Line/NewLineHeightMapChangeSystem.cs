@@ -76,7 +76,8 @@ namespace Sibz.Lines.ECS.Jobs
                              LineHeightMaps     = GetBufferFromEntity<LineTerrainMinMaxHeightMap>(true),
                              MinMaxData         = minMaxData,
                              ActualHeightData   = actualHeightData,
-                             FilteredHeightData = FilteredHeightData
+                             FilteredHeightData = FilteredHeightData,
+                             Changes            = GetComponentDataFromEntity<HeightMapChange>(),
                          }.Schedule(Dependency);
 
             Dependency = new TriggerUpdateTerrainHeightMapJob
@@ -154,6 +155,9 @@ namespace Sibz.Lines.ECS.Jobs
             public NativeHashMap<int, float> FilteredHeightData;
 
             [ReadOnly]
+            public ComponentDataFromEntity<HeightMapChange> Changes;
+
+            [ReadOnly]
             public BufferFromEntity<LineTerrainMinMaxHeightMap> LineHeightMaps;
 
             public void Execute()
@@ -161,12 +165,24 @@ namespace Sibz.Lines.ECS.Jobs
                 for (int i = 0; i < LineEntities.Length; i++)
                 {
                     //var buff = LineHeightMaps[LineEntities[i]];
-                    Update(LineHeightMaps[LineEntities[i]]);
+                    Update(Changes[LineEntities[i]], LineHeightMaps[LineEntities[i]]);
                 }
             }
 
-            public void Update(DynamicBuffer<LineTerrainMinMaxHeightMap> buff)
+            public void Update(HeightMapChange change, DynamicBuffer<LineTerrainMinMaxHeightMap> buff)
             {
+                for (int x = 0; x < change.Size.x; x++)
+                for (int y = 0; y < change.Size.y; y++)
+                {
+                    //Debug.LogFormat("x:{0}, y{1}", x + change.StartPosition.x, y + change.StartPosition.y);
+                    var hashCode = new int2(x + change.StartPosition.x, y + change.StartPosition.y).GetHashCode();
+                    if (MinMaxData.ContainsKey(hashCode))
+                        FilteredHeightData[hashCode] =
+                            math.clamp(ActualHeightData[hashCode], MinMaxData[hashCode].x, MinMaxData[hashCode].y);
+                }
+                /*{
+
+                }
                 for (int i = 0; i < buff.Length; i++)
                 {
                     var hashCode = buff[i].Position.GetHashCode();
@@ -175,8 +191,8 @@ namespace Sibz.Lines.ECS.Jobs
                     /*if (MinMaxData[hashCode].y>0.01f)
                     {
                         Debug.Log(MinMaxData[hashCode].y);
-                    }*/
-                }
+                    }#1#
+                }*/
 
                 /*var count = 0;
                 for (int x = heightMapChange.StartPosition.x;

@@ -24,7 +24,9 @@ namespace Sibz.Lines.ECS.Systems
                             {
                                 var hashCode =
                                     new int2(x + item.StartPosition.x, y + item.StartPosition.y).GetHashCode();
-                                heights[x, y] = h[hashCode];
+//                                if (h.ContainsKey(hashCode))
+                                    heights[x, y] = h[hashCode];
+
                             }
 
                             Terrain.activeTerrain.terrainData.SetHeightsDelayLOD(item.StartPosition.x,

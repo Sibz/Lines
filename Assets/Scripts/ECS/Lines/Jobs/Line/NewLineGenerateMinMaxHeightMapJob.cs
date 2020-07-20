@@ -54,17 +54,57 @@ namespace Sibz.Lines.ECS.Jobs
                               ? LineProfiles[line.Profile]
                               : DefaultProfile;
             knotData = KnotData[LineEntities[index]];
-            bounds   = BoundsArray[index];
-            heightMap = HeightMaps[LineEntities[index]]; //Ecb.SetBuffer<LineTerrainMinMaxHeightMap>(index, LineEntities[index]);
-            heightMap.Clear();
 
+            bounds   = BoundsArray[index];
+            heightMap =
+                HeightMaps
+                    [LineEntities[index]]; //Ecb.SetBuffer<LineTerrainMinMaxHeightMap>(index, LineEntities[index]);
+            heightMap.Clear();
+            if (knotData.Length == 0)
+                return;
+
+            int2 lowest = new int2(int.MaxValue, int.MaxValue);
+            int2 highest = new int2(int.MinValue, int.MinValue);
+            //for (int i = 0; i < knotData.Length; i++)
+            //{
+                ToHeightMapPos(knotData[0].Position, out int2 hMapPos);
+                lowest.x = math.min(hMapPos.x, lowest.x);
+                lowest.y = math.min(hMapPos.y, lowest.y);
+                highest.x = math.max(hMapPos.x, highest.x);
+                highest.y = math.max(hMapPos.y, highest.y);
+                heightMap.Add(new LineTerrainMinMaxHeightMap
+                              {
+                                  Position = hMapPos,
+                                  Min = 0.1f,
+                                  Max = 0.1f
+                              });
+                ToHeightMapPos(knotData[knotData.Length-1].Position, out  hMapPos);
+                lowest.x  = math.min(hMapPos.x, lowest.x);
+                lowest.y  = math.min(hMapPos.y, lowest.y);
+                highest.x = math.max(hMapPos.x, highest.x);
+                highest.y = math.max(hMapPos.y, highest.y);
+                heightMap.Add(new LineTerrainMinMaxHeightMap
+                              {
+                                  Position = hMapPos,
+                                  Min      = 0.1f,
+                                  Max      = 0.1f
+                              });
+            //}
+            Ecb.AddComponent(index, LineEntities[index], new HeightMapChange
+                                                         {
+                                                             Size          = highest-lowest,
+                                                             StartPosition = lowest
+                                                         });
+
+
+            /*
             CalculateHeightMapBounds(out float4 maxDistances);
             ConvertBoundsToIntSize(out int2 size);
             GetBoundsCornerPosition(out int2 boundsPos);
             Ecb.AddComponent(index, LineEntities[index], new HeightMapChange
                                                          {
-                                                            Size = size,
-                                                            StartPosition = boundsPos
+                                                             Size          = size,
+                                                             StartPosition = boundsPos
                                                          });
             for (int x = 0; x < size.x; x++)
             for (int y = 0; y < size.y; y++)
@@ -75,8 +115,13 @@ namespace Sibz.Lines.ECS.Jobs
                 var result = GetMinMaxHeightAtPoint(worldPos.x, worldPos.z, maxDistances, out float min, out float max);
                 var hMapMin = min / TerrainSize2.y;
                 var hMapMax = max / TerrainSize2.y;
+                if (x == 0 && y == 0)
+                {
+                    hMapMax = 0.1f;
+                    hMapMin = 0.1f;
+                }
 
-                // Not we need x/y in relation to terrain heightmap coords - not specific to individual terrain
+                // Not we need x/y in relation to terrain height map coords - not specific to individual terrain
                 // but relative to 0,0
 
                 // first need bounding box corner position in height map coords ^^
@@ -91,13 +136,38 @@ namespace Sibz.Lines.ECS.Jobs
                                       Max      = hMapMax
                                   });
                 }
-            }
+            }*/
+        }
+
+        private void ToWorldPos(int2 heightMapPos, out float3 worldPos)
+        {
+            worldPos =
+                new float3
+                {
+                    x = heightMapPos.x / (float) HeightMapResolution * TerrainSize2.x,
+                    z = heightMapPos.y / (float) HeightMapResolution * TerrainSize2.z
+                };
+        }
+
+        private void ToHeightMapPos(float3 worldPos, out int2 heightMapPos)
+        {
+            heightMapPos = ToHeightMapPos(worldPos);
+        }
+
+        private int2 ToHeightMapPos(float3 worldPos)
+
+        {
+            return new int2
+                           {
+                               x = (int) math.floor(worldPos.x / TerrainSize2.x * HeightMapResolution),
+                               y = (int) math.floor(worldPos.z / TerrainSize2.z * HeightMapResolution),
+                           };
         }
 
         private void GetBoundsCornerPosition(out int2 boundsPos)
         {
-            var x = (int) math.round(bounds.c0.x - (bounds.c1.x / 2) / TerrainSize2.x * HeightMapResolution);
-            var z = (int) math.round(bounds.c0.z - (bounds.c1.z / 2) / TerrainSize2.z * HeightMapResolution);
+            var x = (int) math.floor((bounds.c0.x - (bounds.c1.x / 2)) / TerrainSize2.x * HeightMapResolution);
+            var z = (int) math.floor((bounds.c0.z - (bounds.c1.z / 2)) / TerrainSize2.z * HeightMapResolution);
             boundsPos = new int2(x, z);
         }
 
@@ -115,8 +185,8 @@ namespace Sibz.Lines.ECS.Jobs
         {
             int2 = new int2
                    {
-                       x = (int) math.round(bounds.c1.x / TerrainSize2.x * HeightMapResolution),
-                       y = (int) math.round(bounds.c1.z / TerrainSize2.z * HeightMapResolution)
+                       x = (int) math.floor(bounds.c1.x / TerrainSize2.x * HeightMapResolution),
+                       y = (int) math.floor(bounds.c1.z / TerrainSize2.z * HeightMapResolution)
                    };
         }
 
@@ -223,6 +293,7 @@ namespace Sibz.Lines.ECS.Jobs
                     closestIndex       = i;
                 }
             }
+
             //Profiler.EndSample();
         }
 
@@ -237,7 +308,7 @@ namespace Sibz.Lines.ECS.Jobs
             }
 
             const int maxDiv = 20;
-            var curDiv = 0;
+            var       curDiv = 0;
             while (math.abs(start - target) > 50 && curDiv <= maxDiv)
             {
                 GetSearchKnotPairIndexes2(vector, math.min(start, target), math.max(start, target), out start,
@@ -285,9 +356,9 @@ namespace Sibz.Lines.ECS.Jobs
 
 
             var knotAIndex      = first;
-            var       knotCentreIndex = last / 2;
-            var       knotBIndex      = last;
-            var       knotA           = knotData[knotAIndex].Position;
+            var knotCentreIndex = last / 2;
+            var knotBIndex      = last;
+            var knotA           = knotData[knotAIndex].Position;
             knotA.y = 0;
             var knotCentre = knotData[knotCentreIndex].Position;
             knotCentre.y = 0;
@@ -338,8 +409,8 @@ namespace Sibz.Lines.ECS.Jobs
                            };
 
             var max = math.max(maxDistances.x, math.max(maxDistances.y, math.max(maxDistances.z, maxDistances.w)));
-            bounds.c1.x += max;
-            bounds.c1.z += max;
+            //bounds.c1.x += max;
+            //bounds.c1.z += max;
 
             //Profiler.EndSample();
         }
