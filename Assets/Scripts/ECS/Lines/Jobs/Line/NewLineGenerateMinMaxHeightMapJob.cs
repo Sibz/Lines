@@ -97,6 +97,7 @@ namespace Sibz.Lines.ECS.Jobs
                 }
             }
 
+
             Ecb.AddComponent(index, LineEntities[index], new HeightMapChange
                                                          {
                                                              Size          = highest - lowest,

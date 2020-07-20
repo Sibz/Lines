@@ -12,6 +12,8 @@ namespace Sibz.Lines.ECS.Jobs
 {
     public class NewLineHeightMapChangeSystem : SystemBase
     {
+        private NativeArray<float>                           actualHeightMapData;
+        private NativeArray<float>                           filteredHeightMapData;
         public  NativeHashMap<int, float>                    ActualHeightData;
         public  NativeHashMap<int, float2>                   MinMaxData;
         public  NativeHashMap<Entity, int2x2>                EntityMapBounds;
@@ -24,7 +26,7 @@ namespace Sibz.Lines.ECS.Jobs
 
         private EntityQuery heightMapChangeQuery;
 
-        //private EntityQuery                                  removeHeightMapQuery;
+        private EntityQuery                             removeHeightMapQuery;
         private EntityQuery                             updateQuery;
         private NativeQueue<LineTerrainMinMaxHeightMap> minMaxDataToUpdateSynchronously;
         private NativeArray<int2x2>                     modifiedBounds;
@@ -57,6 +59,7 @@ namespace Sibz.Lines.ECS.Jobs
 
             public void Execute(int index)
             {
+                ModifiedBounds[0] = new int2x2();
                 if (!PreviousBounds.ContainsKey(Entities[index]))
                     return;
                 var entity = Entities[index];
@@ -256,7 +259,7 @@ namespace Sibz.Lines.ECS.Jobs
         {
             public NativeHashMap<int, float2>              MinMaxData;
             public NativeQueue<LineTerrainMinMaxHeightMap> MinMaxDataToUpdateSynchronously;
-            public NativeQueue<int> IndexesModified;
+            public NativeQueue<int>                        IndexesModified;
 
             public void Execute()
             {
@@ -334,30 +337,6 @@ namespace Sibz.Lines.ECS.Jobs
             public void Execute(int index)
             {
                 FilteredHeightData[RemovedIndexes[index]] = ActualHeightData[RemovedIndexes[index]];
-                /*Debug.LogFormat("Bounds:{0}/{1}", ModifiedBounds[0].c1.x, ModifiedBounds[0].c1.y);
-                for (int x = 0; x <= ModifiedBounds[0].c1.x; x++)
-                for (int y = 0; y <= ModifiedBounds[0].c1.y; y++)
-                {
-                    Profiler.BeginSample("UpdateFilteredData2.A");
-                    var hashCode = new int2(x + ModifiedBounds[0].c0.x, y + ModifiedBounds[0].c0.y).GetHashCode();
-                    Profiler.EndSample();
-                    Profiler.BeginSample("UpdateFilteredData2.B");
-                    if (MinMaxData.ContainsKey(hashCode))
-                    {
-                        Profiler.EndSample();
-                        Profiler.BeginSample("UpdateFilteredData2.C");
-                        FilteredHeightData[hashCode] =
-                            math.clamp(ActualHeightData[hashCode], MinMaxData[hashCode].x, MinMaxData[hashCode].y);
-                        Profiler.EndSample();
-                    }
-                    else
-                    {
-                        Profiler.EndSample();
-                        /*Profiler.BeginSample("UpdateFilteredData2.D");
-                        FilteredHeightData[hashCode] = ActualHeightData[hashCode];
-                        Profiler.EndSample();#1#
-                    }
-                }*/
             }
         }
 
@@ -375,10 +354,10 @@ namespace Sibz.Lines.ECS.Jobs
             {
                 var ent = Ecb.CreateEntity();
                 Ecb.AddComponent(ent, new HeightMapUpdateTrigger
-                                             {
-                                                 StartPosition = ModifiedBounds[0].c0,
-                                                 Size          = ModifiedBounds[0].c1
-                                             });
+                                      {
+                                          StartPosition = ModifiedBounds[0].c0,
+                                          Size          = ModifiedBounds[0].c1
+                                      });
                 //var buff = Ecb.SetBuffer<ModifiedHeightMapIndex>(ent);
             }
         }
@@ -386,6 +365,10 @@ namespace Sibz.Lines.ECS.Jobs
         public static int2x2 CombineBounds(int2x2 a, int2x2 b)
         {
             var result = new int2x2();
+            if (a.c1.Equals(int2.zero))
+                return b;
+            if (b.c1.Equals(int2.zero))
+                return a;
             // Increase Bounds if applicable
             var endIndexX = math.max(a.c0.x + a.c1.x,
                                      b.c0.x + b.c1.x);
@@ -461,7 +444,7 @@ namespace Sibz.Lines.ECS.Jobs
                          {
                              MinMaxData                      = MinMaxData,
                              MinMaxDataToUpdateSynchronously = minMaxDataToUpdateSynchronously,
-                             IndexesModified = IndexesModifiedQueue
+                             IndexesModified                 = IndexesModifiedQueue
                          }.Schedule(Dependency);
 
             var hJh2 = new UpdateModifiedOrRemovedIndexes
@@ -501,8 +484,10 @@ namespace Sibz.Lines.ECS.Jobs
 
             LineEndSimBufferSystem.Instance.AddJobHandleForProducer(Dependency);
 
-            LineEndSimBufferSystem.Instance.CreateCommandBuffer()
-                                  .RemoveComponent<HeightMapChange>(heightMapChangeQuery);
+            var ecb = LineEndSimBufferSystem.Instance.CreateCommandBuffer();
+            ecb
+               .RemoveComponent<HeightMapChange>(heightMapChangeQuery);
+            ecb.DestroyEntity(removeHeightMapQuery);
         }
 
         protected override void OnStopRunning()
@@ -530,6 +515,8 @@ namespace Sibz.Lines.ECS.Jobs
             removedIndexes.Dispose();
             modifiedIndexes.Dispose();
             IndexesModifiedQueue.Dispose();
+            actualHeightMapData.Dispose();
+            filteredHeightMapData.Dispose();
         }
 
         public void FirstRun()
@@ -549,13 +536,31 @@ namespace Sibz.Lines.ECS.Jobs
             modifiedIndexes          = new NativeList<int>(heights.GetLength(0), Allocator.Persistent);
             removedIndexes           = new NativeList<int>(heights.GetLength(0), Allocator.Persistent);
             IndexesModifiedQueue     = new NativeQueue<int>(Allocator.Persistent);
+            actualHeightMapData =
+                new NativeArray<float>(heights.GetLength(0) * heights.GetLength(1), Allocator.Persistent);
+            filteredHeightMapData =
+                new NativeArray<float>(heights.GetLength(0) * heights.GetLength(1), Allocator.Persistent);
 
             for (int x = 0; x < heights.GetLength(1); x++)
             for (int y = 0; y < heights.GetLength(0); y++)
             {
+                actualHeightMapData[FlattenVector(x, y)]   = heights[y, x];
+                filteredHeightMapData[FlattenVector(x, y)] = heights[y, x];
                 ActualHeightData.Add(new int2(x, y).GetHashCode(), heights[y, x]);
                 FilteredHeightData.Add(new int2(x, y).GetHashCode(), heights[y, x]);
             }
+        }
+
+        public static int FlattenVector(int2 vector, int ySize) => FlattenVector(vector.x, vector.y, ySize);
+
+        public static int FlattenVector(int x, int y, int ySize)
+        {
+            return x * ySize + y;
+        }
+
+        public static int2 UnFlattenVector(int x, int y, int ySize)
+        {
+            return new int2((int) math.floor(x / (float) ySize), y % ySize);
         }
 
         protected override void OnCreate()
@@ -569,7 +574,7 @@ namespace Sibz.Lines.ECS.Jobs
                                              ComponentType.ReadOnly<LineTerrainMinMaxHeightMap>(),
                                          }
                                });
-            //removeHeightMapQuery = GetEntityQuery(typeof(RemoveHeightMap));
+            removeHeightMapQuery = GetEntityQuery(typeof(RemoveHeightMap));
             updateQuery = GetEntityQuery(new EntityQueryDesc
                                          {
                                              Any = new[]
