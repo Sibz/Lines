@@ -64,8 +64,9 @@ namespace Sibz.Lines.ECS.Jobs
                 return;
 
             ToHeightMapPos(knotData[0].Position, out int2 lowest);
-            int2            highest         = lowest;
-            NativeList<int> processedPoints = new NativeList<int>(Allocator.Temp);
+            int2                 highest         = lowest;
+            NativeList<float2x3> processedPoints = new NativeList<float2x3>(Allocator.Temp);
+            NativeList<int> addedHashes = new NativeList<int>(Allocator.Temp);
             for (int i = 1; i < knotData.Length; i++)
             {
                 var lastKnot = knotData[i - 1];
@@ -74,29 +75,132 @@ namespace Sibz.Lines.ECS.Jobs
                 var dist = math.distance(lastHMapPos, hMapPos);
                 for (int j = 0; j < dist; j++)
                 {
-                    var lerped =  math.lerp(lastHMapPos, hMapPos, j / dist);
-                    var pointToAdd = new int2
+                    var lerped = math.lerp(lastHMapPos, hMapPos, j / dist);
+                    var pointToAdd = new float2x3
                                      {
-                                         x = (int) lerped.x,
-                                         y = (int) lerped.y
+                                         c0 =
+                                         {
+                                             x = (int)lerped.x,
+                                             y = (int)lerped.y,
+                                         },
+                                         c1 =
+                                         {
+                                             x = knotData[i].Position.y / TerrainSize2.y,
+                                             y = knotData[i].Position.y / TerrainSize2.y
+                                         },
+                                         c2 =
+                                         {
+                                             x = knotData[i].Position.x,
+                                             y = knotData[i].Position.z
+                                         }
                                      };
-                    if (processedPoints.Contains(pointToAdd.GetHashCode()))
+                    if (addedHashes.Contains(((int2)pointToAdd.c0).GetHashCode()))
                         continue;
-                    processedPoints.Add(pointToAdd.GetHashCode());
-                    lowest.x  = math.min(pointToAdd.x, lowest.x);
-                    lowest.y  = math.min(pointToAdd.y, lowest.y);
-                    highest.x = math.max(pointToAdd.x, highest.x);
-                    highest.y = math.max(pointToAdd.y, highest.y);
+                    processedPoints.Add(pointToAdd);
+                    addedHashes.Add(((int2)pointToAdd.c0).GetHashCode());
+                    lowest.x  = math.min((int)pointToAdd.c0.x, lowest.x);
+                    lowest.y  = math.min((int)pointToAdd.c0.y, lowest.y);
+                    highest.x = math.max((int)pointToAdd.c0.x, highest.x);
+                    highest.y = math.max((int)pointToAdd.c0.y, highest.y);
 
                     heightMap.Add(new LineTerrainMinMaxHeightMap
                                   {
-                                      Position = pointToAdd,
-                                      Min      = knotData[i].Position.y / TerrainSize2.y,
-                                      Max      = knotData[i].Position.y / TerrainSize2.y
+                                      Position = new int2(pointToAdd.c0),
+                                      Min      = pointToAdd.c1.x,
+                                      Max      = pointToAdd.c1.y
                                   });
                 }
             }
 
+            var startIndex = 0;
+            for (int i = 0; i < 5; i++)
+            {
+                DoLoop(heightMap, ref startIndex);
+            }
+
+            void DoLoop(DynamicBuffer<LineTerrainMinMaxHeightMap> heightMap, ref int startIndex)
+            {
+                var len = processedPoints.Length;
+                int start = startIndex;
+                startIndex = addedHashes.Length;
+                for (int i = start; i < len; i++)
+                {
+                    var s1 = new float2x3
+                             {
+                                 c0 = {x = (int) processedPoints[i].c0.x + 1, y = (int) processedPoints[i].c0.y},
+                                 c1 = processedPoints[i].c1,
+                                 c2 = processedPoints[i].c2
+                             };
+                    var s2 = new float2x3
+                             {
+                                 c0 = {x = (int) processedPoints[i].c0.x - 1, y = (int) processedPoints[i].c0.y},
+                                 c1 = processedPoints[i].c1,
+                                 c2 = processedPoints[i].c2
+                             };
+                    var s3 = new float2x3
+                             {
+                                 c0 = {x = (int) processedPoints[i].c0.x, y = (int) processedPoints[i].c0.y + 1},
+                                 c1 = processedPoints[i].c1,
+                                 c2 = processedPoints[i].c2
+                             };
+                    var s4 = new float2x3
+                             {
+                                 c0 = {x = (int) processedPoints[i].c0.x, y = (int) processedPoints[i].c0.y - 1},
+                                 c1 = processedPoints[i].c1,
+                                 c2 = processedPoints[i].c2
+                             };
+                    if (!addedHashes.Contains(((int2) s1.c0).GetHashCode()))
+                    {
+                        processedPoints.Add(s1);
+                        addedHashes.Add(((int2) s1.c0).GetHashCode());
+                        heightMap.Add(new LineTerrainMinMaxHeightMap
+                                      {
+                                          Position = new int2(s1.c0),
+                                          Min      = s1.c1.x,
+                                          Max      = s1.c1.y
+                                      });
+                    }
+
+                    if (!addedHashes.Contains(((int2) s2.c0).GetHashCode()))
+                    {
+                        processedPoints.Add(s2);
+                        addedHashes.Add(((int2) s2.c0).GetHashCode());
+                        heightMap.Add(new LineTerrainMinMaxHeightMap
+                                      {
+                                          Position = new int2(s2.c0),
+                                          Min      = s2.c1.x,
+                                          Max      = s2.c1.y
+                                      });
+                    }
+
+                    if (!addedHashes.Contains(((int2) s3.c0).GetHashCode()))
+                    {
+                        processedPoints.Add(s3);
+                        addedHashes.Add(((int2) s3.c0).GetHashCode());
+                        heightMap.Add(new LineTerrainMinMaxHeightMap
+                                      {
+                                          Position = new int2(s3.c0),
+                                          Min      = s3.c1.x,
+                                          Max      = s3.c1.y
+                                      });
+                    }
+
+                    if (!addedHashes.Contains(((int2) s4.c0).GetHashCode()))
+                    {
+                        processedPoints.Add(s4);
+                        addedHashes.Add(((int2) s4.c0).GetHashCode());
+                        heightMap.Add(new LineTerrainMinMaxHeightMap
+                                      {
+                                          Position = new int2(s4.c0),
+                                          Min      = s4.c1.x,
+                                          Max      = s4.c1.y
+                                      });
+                    }
+                }
+
+
+
+            }
 
             Ecb.AddComponent(index, LineEntities[index], new HeightMapChange
                                                          {
