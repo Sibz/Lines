@@ -10,7 +10,7 @@ using UnityEngine.Profiling;
 namespace Sibz.Lines.ECS.Jobs
 {
     [BurstCompile]
-    public struct LineGenerateMinMaxHeightMapJob : IJobParallelFor
+    public struct LineGenerateMinMaxHeightMapJob2 : IJobParallelFor
     {
         [ReadOnly]
         public NativeArray<Entity> LineEntities;

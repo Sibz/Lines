@@ -42,7 +42,7 @@ namespace Sibz.Lines.ECS.Systems
                          }.Schedule(linesToCheck.Length, 4, Dependency);
 
             var boundsArray = new NativeArray<float3x2>(linesToCheck.Length, Allocator.TempJob);
-            Dependency = new LineGenerateMinMaxHeightMapJob
+            /*Dependency = new LineGenerateMinMaxHeightMapJob
                          {
                              Ecb                 = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
                              LineEntities        = linesToCheck,
@@ -55,7 +55,7 @@ namespace Sibz.Lines.ECS.Systems
                              TerrainSize2        = Terrain.activeTerrain.terrainData.size,
                              HeightMapResolution = Terrain.activeTerrain.terrainData.heightmapResolution
 
-                         }.Schedule(linesToCheck.Length, 4, Dependency);
+                         }.Schedule(linesToCheck.Length, 4, Dependency);*/
 
             // TODO only trigger this when lines are merged
             Dependency = new LineTriggerMeshRebuildJob

@@ -1,4 +1,5 @@
 ﻿using Sibz.Lines.ECS.Components;
+using Sibz.Lines.ECS.Systems;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -31,24 +32,42 @@ namespace Sibz.Lines.ECS.Jobs
         public float3 TerrainSize;
 
 
+        private NativeList<LineKnotData> combinedKnotData;
+        private NativeList<float2x2>     heightData;
+        private NativeList<bool>         heightSet;
+        private NativeList<int>          entityIndex;
+
+        public void Dispose()
+        {
+            if (combinedKnotData.IsCreated)
+                combinedKnotData.Dispose();
+            if (heightData.IsCreated)
+                heightData.Dispose();
+            if (heightSet.IsCreated)
+                heightSet.Dispose();
+            if (entityIndex.IsCreated)
+                entityIndex.Dispose();
+        }
+
         public JobHandle Schedule(JobHandle dependency)
         {
+            //Dispose();
             var e = new NativeList<Entity>(Allocator.TempJob);
             for (var i = 0; i < Entities.Length; i++)
                 if (!e.Contains(Entities[i]))
                     e.Add(Entities[i]);
 
             var count                      = e.Length;
-            var entities                   = e.AsArray();
+            var entities                   = new NativeArray<Entity>(e, Allocator.TempJob);
             var lineProfiles               = new NativeArray<LineProfile>(count, Allocator.TempJob);
             var maxDistances               = new NativeArray<float4>(count, Allocator.TempJob);
             var extended2DBoundsArray      = new NativeArray<int2x2>(count, Allocator.TempJob);
             var knotOffsetAndLengths       = new NativeArray<int2>(count, Allocator.TempJob);
             var heightDataOffsetAndLengths = new NativeArray<int2>(count, Allocator.TempJob);
-            var combinedKnotData           = new NativeList<LineKnotData>(Allocator.TempJob);
-            var heightData                 = new NativeList<float2x2>(Allocator.TempJob);
-            var heightSet                  = new NativeList<bool>(Allocator.TempJob);
-            var entityIndex                = new NativeList<int>(Allocator.TempJob);
+            combinedKnotData = new NativeList<LineKnotData>(Allocator.TempJob);
+            heightData       = new NativeList<float2x2>(Allocator.TempJob);
+            heightSet        = new NativeList<bool>(Allocator.TempJob);
+            entityIndex      = new NativeList<int>(Allocator.TempJob);
 
             var dependency2 = new CombineKnotData
                               {
@@ -108,8 +127,15 @@ namespace Sibz.Lines.ECS.Jobs
                              HeightMapResolution        = HeightMapResolution
                          }.Schedule(heightData, 8, JobHandle.CombineDependencies(dependency, dependency2));
 
-            dependency = new UpdateEntityHeightMapData().Schedule(count, 1, dependency);
-
+            dependency = new UpdateEntityHeightMapData
+                         {
+                             Ecb = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             Entities = entities,
+                             HeightData = heightData,
+                             HeightSet = heightSet,
+                             HeightMapBuffers = HeightMapBuffers,
+                             HeightDataOffsetAndLengths = heightDataOffsetAndLengths
+                         }.Schedule(count, 1, dependency);
 
             dependency = new DeallocateJob<Entity, LineProfile, float4, int2x2>
                          {
@@ -118,22 +144,25 @@ namespace Sibz.Lines.ECS.Jobs
                              NativeArray3 = maxDistances,
                              NativeArray4 = extended2DBoundsArray
                          }.Schedule(dependency);
-            dependency = new DeallocateJob<int2, int2, LineKnotData, float2x2>
+            dependency = new DeallocateJob<int2, int2 /*, LineKnotData, float2x2*/>
                          {
                              NativeArray1 = knotOffsetAndLengths,
                              NativeArray2 = heightDataOffsetAndLengths,
-                             NativeArray3 = combinedKnotData,
-                             NativeArray4 = heightData
+                             /*NativeArray3 = combinedKnotData.AsDeferredJobArray(),
+                             NativeArray4 = heightData.AsDeferredJobArray()*/
                          }.Schedule(dependency);
-            dependency = new DeallocateJob<bool, int>
+            /*dependency = new DeallocateJob<bool, int>
                          {
-                             NativeArray1 = heightSet,
-                             NativeArray2 = entityIndex
-                         }.Schedule(dependency);
+                             NativeArray1 = heightSet.AsDeferredJobArray(),
+                             NativeArray2 = entityIndex.AsDeferredJobArray()
+                         }.Schedule(dependency);*/
+
+            LineEndSimBufferSystem.Instance.AddJobHandleForProducer(dependency);
 
             return dependency;
         }
 
+        [BurstCompile]
         public struct GetProfiles : IJobParallelFor
         {
             [ReadOnly]
@@ -186,6 +215,7 @@ namespace Sibz.Lines.ECS.Jobs
             }
         }
 
+        [BurstCompile]
         public struct GetBoundsJob : IJobParallelFor
         {
             [ReadOnly]
@@ -308,27 +338,29 @@ namespace Sibz.Lines.ECS.Jobs
             public int    HeightMapResolution;
             public float3 TerrainSize;
 
-            private int                       entityIndex;
-            private int                       index;
-            private NativeSlice<LineKnotData> knotData;
-            private int2                      heightMapPosition;
-            private float3                    worldPosition;
-            private LineKnotData              closestKnot;
-            private int                       closestKnotIndex;
-            private LineProfile               lineProfile;
+            private int          entityIndex;
+            private int          index;
+            private int2         heightMapPosition;
+            private float3       worldPosition;
+            private LineKnotData closestKnot;
+            private int          closestKnotIndex;
+            private LineProfile  lineProfile;
 
             public void Execute(int i)
             {
                 index       = i;
                 entityIndex = EntityIndex[i];
                 lineProfile = LineProfiles[entityIndex];
-                knotData = new NativeSlice<LineKnotData>(CombinedKnotData,
-                                                         KnotOffsetAndLengths[entityIndex].x,
-                                                         KnotOffsetAndLengths[entityIndex].y);
+                var knotData = new NativeSlice<LineKnotData>(CombinedKnotData,
+                                                             KnotOffsetAndLengths[entityIndex].x,
+                                                             KnotOffsetAndLengths[entityIndex].y);
+
+                if (knotData.Length == 0)
+                    return;
 
                 SetHeightMapPosition();
                 ToWorldPos(heightMapPosition, out worldPosition);
-                SetClosesKnot();
+                SetClosesKnot(knotData);
                 SetMinMax();
             }
 
@@ -370,13 +402,13 @@ namespace Sibz.Lines.ECS.Jobs
                 HeightSet[index]  = true;
             }
 
-            private void SetClosesKnot()
+            private void SetClosesKnot(NativeSlice<LineKnotData> knotData)
             {
-                TryGetClosestKnot(0, knotData.Length - 1, out closestKnotIndex);
+                TryGetClosestKnot(knotData, 0, knotData.Length - 1, out closestKnotIndex);
                 closestKnot = knotData[closestKnotIndex];
             }
 
-            private void TryGetClosestKnot(int start, int end, out int closestIndex)
+            private void TryGetClosestKnot(NativeSlice<LineKnotData> knotData, int start, int end, out int closestIndex)
             {
                 while (true)
                 {
@@ -424,6 +456,7 @@ namespace Sibz.Lines.ECS.Jobs
             }
         }
 
+        [BurstCompile]
         public struct UpdateEntityHeightMapData : IJobParallelFor
         {
             [ReadOnly]

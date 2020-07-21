@@ -12,6 +12,7 @@ namespace Sibz.Lines.ECS.Systems
     public class NewLineUpdateSystem : SystemBase
     {
         private EntityQuery eventQuery;
+        private HeightMapsJobs heightMapsJobs;
 
         protected override void OnCreate()
         {
@@ -43,6 +44,8 @@ namespace Sibz.Lines.ECS.Systems
                              LineEntities   = lineEntities,
                              Lines          = GetComponentDataFromEntity<Line>()
                          }.Schedule(eventCount, 4, JobHandle.CombineDependencies(Dependency, jh1));
+
+            Dependency.Complete();
 
             // This job only runs if UpdateJoinPoints is set in event data
             Dependency = new NewLineGetUpdatedJoinPoints
@@ -114,7 +117,21 @@ namespace Sibz.Lines.ECS.Systems
                              Lines            = GetComponentDataFromEntity<Line>()
                          }.Schedule(Dependency);
 
-            Dependency = new LineGenerateMinMaxHeightMapJob
+            heightMapsJobs.Dispose();
+            heightMapsJobs = new HeightMapsJobs
+                             {
+                                 Entities               = lineEntities,
+                                 Lines                  = GetComponentDataFromEntity<Line>(),
+                                 KnotData               = GetBufferFromEntity<LineKnotData>(),
+                                 LineProfilesFromEntity = GetComponentDataFromEntity<LineProfile>(),
+                                 HeightMapBuffers       = GetBufferFromEntity<LineTerrainMinMaxHeightMap>(),
+                                 BoundsArray            = boundsArray,
+                                 TerrainSize            = Terrain.activeTerrain.terrainData.size,
+                                 HeightMapResolution    = Terrain.activeTerrain.terrainData.heightmapResolution
+                             };
+            Dependency = heightMapsJobs.Schedule(Dependency);
+
+            /*Dependency = new LineGenerateMinMaxHeightMapJob
                          {
                              Ecb = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
                              LineEntities = lineEntities,
@@ -127,7 +144,7 @@ namespace Sibz.Lines.ECS.Systems
                              TerrainSize2 = Terrain.activeTerrain.terrainData.size,
                              HeightMapResolution = Terrain.activeTerrain.terrainData.heightmapResolution
 
-                         }.Schedule(eventCount, 4, Dependency);
+                         }.Schedule(eventCount, 4, Dependency);*/
 
             Dependency = new NewLineUpdateJoinPointsJob
                          {
@@ -170,6 +187,11 @@ namespace Sibz.Lines.ECS.Systems
             LineEndSimBufferSystem.Instance.CreateCommandBuffer().DestroyEntity(eventQuery);
 
             LineEndSimBufferSystem.Instance.AddJobHandleForProducer(Dependency);
+        }
+
+        protected override void OnStopRunning()
+        {
+            heightMapsJobs.Dispose();
         }
     }
 }
