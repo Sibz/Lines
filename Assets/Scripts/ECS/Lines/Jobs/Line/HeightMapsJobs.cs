@@ -432,10 +432,10 @@ namespace Sibz.Lines.ECS.Jobs
 
                     var centre = start + (end - start) / 2;
                     var distA  = math.distance(knotData[start].Position, worldPosition);
-                    var distB  = math.distance(knotData[centre].Position, worldPosition);
+                    //var distB  = math.distance(knotData[centre].Position, worldPosition);
                     var distC = math.distance(knotData[end].Position, worldPosition);
-                    start = distA < distB && distA < distC ? start : centre;
-                    end   = distA < distB && distA < distC ? centre : end;
+                    start = distA < distC ? start : centre;
+                    end   = distA < distC ? centre : end;
                 }
             }
 
