@@ -10,7 +10,7 @@ using UnityEngine.Profiling;
 namespace Sibz.Lines.ECS.Jobs
 {
     [BurstCompile]
-    public struct NewLineGenerateMinMaxHeightMapJob : IJobParallelFor
+    public struct LineGenerateMinMaxHeightMapJob : IJobParallelFor
     {
         [ReadOnly]
         public NativeArray<Entity> LineEntities;
@@ -66,7 +66,7 @@ namespace Sibz.Lines.ECS.Jobs
             ToHeightMapPos(knotData[0].Position, out int2 lowest);
             int2                 highest         = lowest;
             NativeList<float2x3> processedPoints = new NativeList<float2x3>(Allocator.Temp);
-            NativeList<int> addedHashes = new NativeList<int>(Allocator.Temp);
+            NativeList<int>      addedHashes     = new NativeList<int>(Allocator.Temp);
             for (int i = 1; i < knotData.Length; i++)
             {
                 var lastKnot = knotData[i - 1];
@@ -80,8 +80,8 @@ namespace Sibz.Lines.ECS.Jobs
                                      {
                                          c0 =
                                          {
-                                             x = (int)lerped.x,
-                                             y = (int)lerped.y,
+                                             x = (int) lerped.x,
+                                             y = (int) lerped.y,
                                          },
                                          c1 =
                                          {
@@ -94,14 +94,14 @@ namespace Sibz.Lines.ECS.Jobs
                                              y = knotData[i].Position.z
                                          }
                                      };
-                    if (addedHashes.Contains(((int2)pointToAdd.c0).GetHashCode()))
+                    if (addedHashes.Contains(((int2) pointToAdd.c0).GetHashCode()))
                         continue;
                     processedPoints.Add(pointToAdd);
-                    addedHashes.Add(((int2)pointToAdd.c0).GetHashCode());
-                    lowest.x  = math.min((int)pointToAdd.c0.x, lowest.x);
-                    lowest.y  = math.min((int)pointToAdd.c0.y, lowest.y);
-                    highest.x = math.max((int)pointToAdd.c0.x, highest.x);
-                    highest.y = math.max((int)pointToAdd.c0.y, highest.y);
+                    addedHashes.Add(((int2) pointToAdd.c0).GetHashCode());
+                    lowest.x  = math.min((int) pointToAdd.c0.x, lowest.x);
+                    lowest.y  = math.min((int) pointToAdd.c0.y, lowest.y);
+                    highest.x = math.max((int) pointToAdd.c0.x, highest.x);
+                    highest.y = math.max((int) pointToAdd.c0.y, highest.y);
 
                     heightMap.Add(new LineTerrainMinMaxHeightMap
                                   {
@@ -120,7 +120,7 @@ namespace Sibz.Lines.ECS.Jobs
 
             void DoLoop(DynamicBuffer<LineTerrainMinMaxHeightMap> heightMap, ref int startIndex)
             {
-                var len = processedPoints.Length;
+                var len   = processedPoints.Length;
                 int start = startIndex;
                 startIndex = addedHashes.Length;
                 for (int i = start; i < len; i++)
@@ -197,9 +197,6 @@ namespace Sibz.Lines.ECS.Jobs
                                       });
                     }
                 }
-
-
-
             }
 
             Ecb.AddComponent(index, LineEntities[index], new HeightMapChange
@@ -521,7 +518,7 @@ namespace Sibz.Lines.ECS.Jobs
                            };
 
             var max = math.max(maxDistances.x, math.max(maxDistances.y, math.max(maxDistances.z, maxDistances.w)));
-            //bounds.c1.x += max;
+            bounds.c1.x += max;
             //bounds.c1.z += max;
 
             //Profiler.EndSample();

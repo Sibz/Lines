@@ -42,7 +42,7 @@ namespace Sibz.Lines.ECS.Systems
                          }.Schedule(linesToCheck.Length, 4, Dependency);
 
             var boundsArray = new NativeArray<float3x2>(linesToCheck.Length, Allocator.TempJob);
-            Dependency = new NewLineGenerateMinMaxHeightMapJob
+            Dependency = new LineGenerateMinMaxHeightMapJob
                          {
                              Ecb                 = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
                              LineEntities        = linesToCheck,

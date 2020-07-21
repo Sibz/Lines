@@ -114,7 +114,7 @@ namespace Sibz.Lines.ECS.Systems
                              Lines            = GetComponentDataFromEntity<Line>()
                          }.Schedule(Dependency);
 
-            Dependency = new NewLineGenerateMinMaxHeightMapJob
+            Dependency = new LineGenerateMinMaxHeightMapJob
                          {
                              Ecb = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
                              LineEntities = lineEntities,
