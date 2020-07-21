@@ -68,6 +68,7 @@ namespace Sibz.Lines.ECS.Jobs
             heightData       = new NativeList<float2x2>(Allocator.TempJob);
             heightSet        = new NativeList<bool>(Allocator.TempJob);
             entityIndex      = new NativeList<int>(Allocator.TempJob);
+            e.Dispose();
 
             var dependency2 = new CombineKnotData
                               {
@@ -211,7 +212,7 @@ namespace Sibz.Lines.ECS.Jobs
 
             private static float GetOpposite(float angle, float maxDist)
             {
-                return math.tan(90 - angle) * maxDist;
+                return math.tan(0.5f * math.PI - angle) * maxDist;
             }
         }
 
@@ -242,13 +243,13 @@ namespace Sibz.Lines.ECS.Jobs
                     {
                         c0 =
                         {
-                            x = (int) ((bounds.c0.x - bounds.c1.x / 2) / TerrainSize.x * HeightMapResolution),
-                            y = (int) ((bounds.c0.z - bounds.c1.z / 2) / TerrainSize.z * HeightMapResolution)
+                            x = (int) ((-max + bounds.c0.x - bounds.c1.x / 2) / TerrainSize.x * HeightMapResolution),
+                            y = (int) ((-max + bounds.c0.z - bounds.c1.z / 2) / TerrainSize.z * HeightMapResolution)
                         },
                         c1 =
                         {
-                            x = (int) (bounds.c1.x / TerrainSize.x * HeightMapResolution + max),
-                            y = (int) (bounds.c1.z / TerrainSize.z * HeightMapResolution + max)
+                            x = (int) ((bounds.c1.x + max * 2) / TerrainSize.x * HeightMapResolution),
+                            y = (int) ((bounds.c1.z + max * 2) / TerrainSize.z * HeightMapResolution)
                         }
                     };
             }
@@ -367,7 +368,7 @@ namespace Sibz.Lines.ECS.Jobs
             public void SetMinMax()
             {
                 var dist              = math.distance(closestKnot.Position, worldPosition);
-                var closestKnotHeight = closestKnot.Position.y;
+                var closestKnotHeight = closestKnot.Position.y / TerrainSize.y;
                 if (dist < lineProfile.Width / 2)
                 {
                     HeightData[index] =
@@ -386,7 +387,7 @@ namespace Sibz.Lines.ECS.Jobs
 
                 float GetCurveVector(float maxDist, float maxChange, LineProfile profile)
                 {
-                    var t = maxDist / distFromEdge;
+                    var t = distFromEdge / maxDist;
 
                     var pointA = new float2(0, closestKnotHeight);
                     var controlPoint = new float2(profile.Width / 2 / maxDist,
@@ -395,8 +396,10 @@ namespace Sibz.Lines.ECS.Jobs
                     return Bezier.Bezier.GetVectorOnCurve(pointA, controlPoint, pointB, t).y;
                 }
 
-                var min = GetCurveVector(MaxDistances[index].z, lineProfile.TerrainConstraints.MaxDepth, lineProfile);
-                var max = GetCurveVector(MaxDistances[index].z, lineProfile.TerrainConstraints.MaxDepth, lineProfile);
+                var max = GetCurveVector(MaxDistances[entityIndex].z,
+                                         lineProfile.TerrainConstraints.MaxRise / TerrainSize.y, lineProfile);
+                var min = GetCurveVector(MaxDistances[entityIndex].z,
+                                         -(lineProfile.TerrainConstraints.MaxDepth / TerrainSize.y), lineProfile);
 
                 HeightData[index] = new float2x2(heightMapPosition, new float2(min, max));
                 HeightSet[index]  = true;
@@ -430,8 +433,9 @@ namespace Sibz.Lines.ECS.Jobs
                     var centre = start + (end - start) / 2;
                     var distA  = math.distance(knotData[start].Position, worldPosition);
                     var distB  = math.distance(knotData[centre].Position, worldPosition);
-                    start = distA < distB ? start : centre;
-                    end   = distA < distB ? centre : end;
+                    var distC = math.distance(knotData[end].Position, worldPosition);
+                    start = distA < distB && distA < distC ? start : centre;
+                    end   = distA < distB && distA < distC ? centre : end;
                 }
             }
 
@@ -442,7 +446,7 @@ namespace Sibz.Lines.ECS.Jobs
                 var relativeIndex   = index - offsetAndLength.x;
                 var x               = (int) math.floor(relativeIndex / (float) bounds.c1.y);
                 var y               = relativeIndex % bounds.c1.y;
-                heightMapPosition = new int2(x, y);
+                heightMapPosition = new int2(x + bounds.c0.x, y + bounds.c0.y);
             }
 
             private void ToWorldPos(int2 heightMapPos, out float3 worldPos)
@@ -493,14 +497,15 @@ namespace Sibz.Lines.ECS.Jobs
 
                 for (var i = 0; i < len; i++)
                 {
+                    if (!heightSetData[i])
+                        continue;
+
                     if (i == 0)
                     {
                         lowest  = new int2(heightData[i].c0);
                         highest = lowest;
                     }
 
-                    if (!heightSetData[i])
-                        continue;
                     var position = new int2(heightData[i].c0);
 
                     heightMapBuffer.Add(new LineTerrainMinMaxHeightMap
