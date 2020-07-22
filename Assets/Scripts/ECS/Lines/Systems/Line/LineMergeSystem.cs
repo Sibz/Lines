@@ -12,6 +12,7 @@ namespace Sibz.Lines.ECS.Systems
     public class LineMergeSystem : SystemBase
     {
         private EntityQuery mergeCheckQuery;
+        private HeightMapsJobs heightMapsJobs;
 
         protected override void OnCreate()
         {
@@ -22,7 +23,7 @@ namespace Sibz.Lines.ECS.Systems
         protected override void OnUpdate()
         {
             var joinPoints   = GetComponentDataFromEntity<LineJoinPoint>(true);
-            var lines        = GetComponentDataFromEntity<Line>(true);
+            var lines        = GetComponentDataFromEntity<Line>();
             var knotBuffers  = GetBufferFromEntity<LineKnotData>();
             var linesToCheck = mergeCheckQuery.ToEntityArray(Allocator.TempJob);
             Dependency.Complete();
@@ -35,27 +36,33 @@ namespace Sibz.Lines.ECS.Systems
                              Lines          = lines,
                              LineEntities   = linesToCheck,
                              LineJoinPoints = joinPoints,
-                             LineProfiles = GetComponentDataFromEntity<LineProfile>(),
+                             LineProfiles   = GetComponentDataFromEntity<LineProfile>(),
                              LineKnotData   = knotBuffers,
                              Ecb            = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
                              DefaultProfile = LineProfile.Default()
                          }.Schedule(linesToCheck.Length, 4, Dependency);
 
+            // Todo make LineMergeJob update Lines direct without Ecb
             var boundsArray = new NativeArray<float3x2>(linesToCheck.Length, Allocator.TempJob);
-            /*Dependency = new LineGenerateMinMaxHeightMapJob
+            Dependency = new LineGetBoundsJob
                          {
-                             Ecb                 = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
-                             LineEntities        = linesToCheck,
-                             LineProfiles        = GetComponentDataFromEntity<LineProfile>(true),
-                             Lines               = GetComponentDataFromEntity<Line>(true),
-                             KnotData            = GetBufferFromEntity<LineKnotData>(true),
-                             HeightMaps          = GetBufferFromEntity<LineTerrainMinMaxHeightMap>(),
-                             BoundsArray         = boundsArray,
-                             DefaultProfile      = LineProfile.Default(),
-                             TerrainSize2        = Terrain.activeTerrain.terrainData.size,
-                             HeightMapResolution = Terrain.activeTerrain.terrainData.heightmapResolution
-
-                         }.Schedule(linesToCheck.Length, 4, Dependency);*/
+                             Entities = linesToCheck,
+                             Lines    = GetComponentDataFromEntity<Line>(),
+                             Bounds   = boundsArray
+                         }.Schedule(linesToCheck.Length, 4, Dependency);
+            heightMapsJobs.Dispose();
+            heightMapsJobs = new HeightMapsJobs
+                             {
+                                 Entities               = linesToCheck,
+                                 Lines                  = lines,
+                                 KnotData               = knotBuffers,
+                                 LineProfilesFromEntity = GetComponentDataFromEntity<LineProfile>(),
+                                 HeightMapBuffers       = GetBufferFromEntity<LineTerrainMinMaxHeightMap>(),
+                                 BoundsArray            = boundsArray,
+                                 TerrainSize            = Terrain.activeTerrain.terrainData.size,
+                                 HeightMapResolution    = Terrain.activeTerrain.terrainData.heightmapResolution
+                             };
+            Dependency = heightMapsJobs.Schedule(Dependency);
 
             // TODO only trigger this when lines are merged
             Dependency = new LineTriggerMeshRebuildJob
@@ -80,6 +87,11 @@ namespace Sibz.Lines.ECS.Systems
                          }.Schedule(Dependency);
 
             LineEndSimBufferSystem.Instance.AddJobHandleForProducer(Dependency);
+        }
+
+        protected override void OnStopRunning()
+        {
+            heightMapsJobs.Dispose();
         }
     }
 }

@@ -394,12 +394,11 @@ namespace Sibz.Lines.ECS.Jobs
                 {
                     var t = distFromEdge / maxDist;
                     return math.lerp(closestKnotHeight, closestKnotHeight + maxChange, t);
-                    /*
-                    var pointA = new float2(0, closestKnotHeight);
-                    var controlPoint = new float2(0.01f,
-                                                  closestKnotHeight);
-                    var pointB = new float2(1, maxChange);
-                    return Bezier.Bezier.GetVectorOnCurve(pointA, controlPoint, pointB, t).y;*/
+                    /*var pointA = new float2(0, 0);
+                    var controlPoint = new float2(0, 0);
+                    var pointB = new float2(0, maxChange);
+                    //math.lerp(closestKnotHeight,  )
+                    return Bezier.Bezier.GetVectorOnCurve(pointA, controlPoint, pointB, t).y + closestKnotHeight;*/
                 }
 
                 var max = GetCurveVector(MaxDistances[entityIndex].z,
@@ -421,25 +420,31 @@ namespace Sibz.Lines.ECS.Jobs
             {
                 while (true)
                 {
+
                     if (start == end)
                     {
                         closestIndex = start;
                         return;
                     }
 
+                    var startPosWithoutHeight = knotData[start].Position;
+                    startPosWithoutHeight.y = 0;
+                    var endPosWithoutHeight = knotData[end].Position;
+                    endPosWithoutHeight.y = 0;
+
                     if (start + 1 == end)
                     {
-                        closestIndex = math.distance(knotData[start].Position, worldPosition) >
-                                       math.distance(knotData[end].Position, worldPosition)
+                        closestIndex = math.distance(startPosWithoutHeight, worldPosition) >
+                                       math.distance(endPosWithoutHeight, worldPosition)
                                            ? end
                                            : start;
                         return;
                     }
 
                     var centre = start + (end - start) / 2;
-                    var distA  = math.distance(knotData[start].Position, worldPosition);
+                    var distA  = math.distance(startPosWithoutHeight, worldPosition);
                     //var distB  = math.distance(knotData[centre].Position, worldPosition);
-                    var distC = math.distance(knotData[end].Position, worldPosition);
+                    var distC = math.distance(endPosWithoutHeight, worldPosition);
                     start = distA < distC ? start : centre;
                     end   = distA < distC ? centre : end;
                 }
@@ -495,6 +500,7 @@ namespace Sibz.Lines.ECS.Jobs
                                                           HeightDataOffsetAndLengths[index].x,
                                                           HeightDataOffsetAndLengths[index].y);
                 var heightMapBuffer = HeightMapBuffers[Entities[index]];
+                heightMapBuffer.Clear();
                 var len             = heightData.Length;
                 var lowest          = int2.zero;
                 var highest         = int2.zero;

@@ -7,6 +7,7 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 namespace Sibz.Lines.ECS.Jobs
 {
@@ -60,6 +61,7 @@ namespace Sibz.Lines.ECS.Jobs
             public void Execute(int index)
             {
                 ModifiedBounds[0] = new int2x2();
+                Profiler.BeginSample("A");
                 if (!PreviousBounds.ContainsKey(Entities[index]))
                     return;
                 var entity = Entities[index];
@@ -69,22 +71,29 @@ namespace Sibz.Lines.ECS.Jobs
                     PreviousBounds.Remove(entity);
                     return;
                 }
-
+                Profiler.EndSample();
+                Profiler.BeginSample("B");
                 do
                 {
+
+                    Profiler.BeginSample("B1A");
                     if (EntityMinMaxData.TryGetFirstValue(minMaxEntryIndex, out EntityAndMinMaxData minMaxData,
                                                           out NativeMultiHashMapIterator<int> it2))
                     {
+                        Profiler.EndSample();
+                        Profiler.BeginSample("B1");
                         // Should always be true TODO: Decide if needed
-                        if (MinMaxData.ContainsKey(minMaxEntryIndex))
-                        {
+                        //if (MinMaxData.ContainsKey(minMaxEntryIndex))
+                        //{
                             MinMaxData.Remove(minMaxEntryIndex);
                             if (!RemovedIndexes.Contains(minMaxEntryIndex))
                             {
                                 RemovedIndexes.Add(minMaxEntryIndex);
                             }
-                        }
+                        //}
+                        Profiler.EndSample();
 
+                        Profiler.BeginSample("B2");
                         do
                         {
                             if (minMaxData.Entity.Equals(entity))
@@ -111,11 +120,17 @@ namespace Sibz.Lines.ECS.Jobs
                         } while (EntityMinMaxData.TryGetNextValue(out minMaxData, ref it2));
 
                         PreviousMinMaxEntryIndexes.Remove(it);
+                        Profiler.EndSample();
+                    }
+                    else
+                    {
+                        Profiler.EndSample();
                     }
                 } while (PreviousMinMaxEntryIndexes.TryGetNextValue(out minMaxEntryIndex, ref it));
-
+                Profiler.BeginSample("C");
                 ModifiedBounds[0] = CombineBounds(PreviousBounds[entity], ModifiedBounds[0]);
                 PreviousBounds.Remove(entity);
+                Profiler.EndSample();
             }
         }
 
@@ -326,6 +341,9 @@ namespace Sibz.Lines.ECS.Jobs
         public struct UpdateFilteredData3 : IJobParallelForDefer
         {
             [ReadOnly]
+            public NativeHashMap<int, float2> MinMaxData;
+
+            [ReadOnly]
             public NativeHashMap<int, float> ActualHeightData;
 
             [NativeDisableParallelForRestriction]
@@ -336,7 +354,18 @@ namespace Sibz.Lines.ECS.Jobs
 
             public void Execute(int index)
             {
-                FilteredHeightData[RemovedIndexes[index]] = ActualHeightData[RemovedIndexes[index]];
+                if (!MinMaxData.ContainsKey(RemovedIndexes[index]))
+                {
+                    FilteredHeightData[RemovedIndexes[index]] = ActualHeightData[RemovedIndexes[index]];
+                }
+                else
+                {
+                    var a = ActualHeightData[RemovedIndexes[index]];
+                    var b = MinMaxData[RemovedIndexes[index]];
+                    //var x = FilteredHeightData[ModifiedIndexes[index]];
+                    var x = math.clamp(a, b.x, b.y);
+                    FilteredHeightData[RemovedIndexes[index]] = x;
+                }
             }
         }
 
@@ -397,7 +426,7 @@ namespace Sibz.Lines.ECS.Jobs
 
             for (int i = entities.Length; i < entities.Length + removeEntities.Length; i++)
             {
-                removeAndChangeEntities[i] = EntityManager.GetComponentData<RemoveHeightMap>(removeEntities[i]).HeightMapOwner;
+                removeAndChangeEntities[i] = EntityManager.GetComponentData<RemoveHeightMap>(removeEntities[i-entities.Length]).HeightMapOwner;
             }
 
             removeEntities.Dispose();
@@ -480,6 +509,7 @@ namespace Sibz.Lines.ECS.Jobs
 
             var uJh2 = new UpdateFilteredData3
                        {
+                           MinMaxData = MinMaxData,
                            RemovedIndexes     = removedIndexes,
                            ActualHeightData   = ActualHeightData,
                            FilteredHeightData = FilteredHeightData,

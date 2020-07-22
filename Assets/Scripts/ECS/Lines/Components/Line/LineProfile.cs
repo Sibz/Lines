@@ -27,7 +27,7 @@ namespace Sibz.Lines.ECS.Components
 
         public static LineProfile Default()
         {
-            const float defaultAngleInRadians = math.PI / 3.5f;
+            const float defaultAngleInRadians = math.PI / 3.75f;
             return new LineProfile
                    {
                        Width           = 1f,

@@ -14,7 +14,7 @@ namespace Sibz.Lines.ECS.Jobs
         [ReadOnly]
         public ComponentDataFromEntity<LineJoinPoint> LineJoinPoints;
 
-        [ReadOnly]
+        [NativeDisableParallelForRestriction]
         public ComponentDataFromEntity<Line> Lines;
 
         [ReadOnly]
@@ -23,6 +23,7 @@ namespace Sibz.Lines.ECS.Jobs
         [NativeDisableParallelForRestriction]
         public BufferFromEntity<LineKnotData> LineKnotData;
 
+        [ReadOnly]
         public NativeArray<Entity>            LineEntities;
         public EntityCommandBuffer.Concurrent Ecb;
         public LineProfile                    DefaultProfile;
@@ -33,6 +34,9 @@ namespace Sibz.Lines.ECS.Jobs
 
         public void Execute(int i)
         {
+            if (LineEntities.IndexOf<Entity>(LineEntities[i]) != i)
+                return;
+
             index      = i;
             line       = Lines[LineEntities[index]];
             lineEntity = LineEntities[index];
@@ -82,7 +86,8 @@ namespace Sibz.Lines.ECS.Jobs
 
             UpdateJoinPoints(thisJoinEntity, joinState, otherLine);
 
-            Ecb.SetComponent(index, LineEntities[index], line);
+            Lines[lineEntity] = line;
+            //Ecb.SetComponent(index, LineEntities[index], line);
         }
 
         private void UpdatePositionAndBounds()
