@@ -367,9 +367,13 @@ namespace Sibz.Lines.ECS.Jobs
 
             public void SetMinMax()
             {
-                var dist              = math.distance(closestKnot.Position, worldPosition);
+                var closestPosWithoutHeight = closestKnot.Position;
+                closestPosWithoutHeight.y = 0;
+
+                var dist              = math.distance(closestPosWithoutHeight, worldPosition);
+
                 var closestKnotHeight = closestKnot.Position.y / TerrainSize.y;
-                if (dist < lineProfile.Width / 2)
+                if (dist < lineProfile.Width / 1.5)
                 {
                     HeightData[index] =
                         new float2x2(heightMapPosition, new float2(closestKnotHeight, closestKnotHeight));
@@ -382,18 +386,20 @@ namespace Sibz.Lines.ECS.Jobs
                     HeightSet[index] = false;
                     return;
                 }
-
-                var distFromEdge = dist - lineProfile.Width / 2;
+                /*HeightSet[index] = false;
+                return;*/
+                var distFromEdge = dist - lineProfile.Width /2;
 
                 float GetCurveVector(float maxDist, float maxChange, LineProfile profile)
                 {
                     var t = distFromEdge / maxDist;
-
+                    return math.lerp(closestKnotHeight, closestKnotHeight + maxChange, t);
+                    /*
                     var pointA = new float2(0, closestKnotHeight);
-                    var controlPoint = new float2(profile.Width / 2 / maxDist,
+                    var controlPoint = new float2(0.01f,
                                                   closestKnotHeight);
                     var pointB = new float2(1, maxChange);
-                    return Bezier.Bezier.GetVectorOnCurve(pointA, controlPoint, pointB, t).y;
+                    return Bezier.Bezier.GetVectorOnCurve(pointA, controlPoint, pointB, t).y;*/
                 }
 
                 var max = GetCurveVector(MaxDistances[entityIndex].z,
@@ -454,8 +460,8 @@ namespace Sibz.Lines.ECS.Jobs
                 worldPos =
                     new float3
                     {
-                        x = heightMapPos.x / (float) HeightMapResolution * TerrainSize.x,
-                        z = heightMapPos.y / (float) HeightMapResolution * TerrainSize.z
+                        x = (heightMapPos.x + 0.5f) / (float) HeightMapResolution * TerrainSize.x,
+                        z = (heightMapPos.y + 0.5f) / (float) HeightMapResolution * TerrainSize.z
                     };
             }
         }

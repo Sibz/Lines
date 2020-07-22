@@ -385,7 +385,23 @@ namespace Sibz.Lines.ECS.Jobs
         {
             Dispose();
             var entities                = heightMapChangeQuery.ToEntityArrayAsync(Allocator.TempJob, out var jh1);
-            var removeAndChangeEntities = updateQuery.ToEntityArrayAsync(Allocator.TempJob, out var jh2);
+
+
+            var removeEntities = removeHeightMapQuery.ToEntityArrayAsync(Allocator.TempJob, out JobHandle jh2);
+            JobHandle.CombineDependencies(jh1,jh2).Complete();
+            var removeAndChangeEntities = new NativeArray<Entity>(removeEntities.Length + entities.Length, Allocator.TempJob);
+            for (int i = 0; i < entities.Length; i++)
+            {
+                removeAndChangeEntities[i] = entities[i];
+            }
+
+            for (int i = entities.Length; i < entities.Length + removeEntities.Length; i++)
+            {
+                removeAndChangeEntities[i] = EntityManager.GetComponentData<RemoveHeightMap>(removeEntities[i]).HeightMapOwner;
+            }
+
+            removeEntities.Dispose();
+
             var count                   = entities.Length;
             minMaxDataToUpdateSynchronously = new NativeQueue<LineTerrainMinMaxHeightMap>(Allocator.TempJob);
 

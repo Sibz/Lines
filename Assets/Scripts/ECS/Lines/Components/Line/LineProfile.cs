@@ -27,7 +27,7 @@ namespace Sibz.Lines.ECS.Components
 
         public static LineProfile Default()
         {
-            const float fortyFiveDegreesInRadians = math.PI / 4;
+            const float defaultAngleInRadians = math.PI / 3.5f;
             return new LineProfile
                    {
                        Width           = 1f,
@@ -37,10 +37,10 @@ namespace Sibz.Lines.ECS.Components
                        {
                            MaxDepth = 5,
                            MaxRise = 5,
-                           SideCuttingAngle = fortyFiveDegreesInRadians,
-                           EndCuttingAngle = fortyFiveDegreesInRadians,
-                           SideRiseAngle = fortyFiveDegreesInRadians,
-                           EndRiseAngle = fortyFiveDegreesInRadians
+                           SideCuttingAngle = defaultAngleInRadians,
+                           EndCuttingAngle = defaultAngleInRadians,
+                           SideRiseAngle = defaultAngleInRadians,
+                           EndRiseAngle = defaultAngleInRadians
                        }
                    };
         }
