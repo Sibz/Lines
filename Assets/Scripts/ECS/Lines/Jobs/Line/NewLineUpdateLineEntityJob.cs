@@ -21,7 +21,7 @@ namespace Sibz.Lines.ECS.Jobs
         public NativeArray<float3x2> BoundsArray;
 
         public LineProfile                    DefaultProfile;
-        public EntityCommandBuffer.Concurrent Ecb;
+        public EntityCommandBuffer.ParallelWriter Ecb;
 
         public void Execute(int index)
         {
@@ -29,7 +29,7 @@ namespace Sibz.Lines.ECS.Jobs
             line.Position = BoundsArray[index].c0;
             line.BoundingBoxSize =
                 BoundsArray[index].c1 +
-                (LineProfiles.Exists(LineEntities[index])
+                (LineProfiles.HasComponent(LineEntities[index])
                      ? LineProfiles[LineEntities[index]].Width * 2
                      : DefaultProfile.Width * 2);
             Ecb.SetComponent(index, LineEntities[index], line);

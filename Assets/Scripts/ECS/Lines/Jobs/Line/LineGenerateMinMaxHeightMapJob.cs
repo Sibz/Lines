@@ -33,7 +33,7 @@ namespace Sibz.Lines.ECS.Jobs
         public LineProfile                    DefaultProfile;
         public float3                         TerrainSize2;
         public int                            HeightMapResolution;
-        public EntityCommandBuffer.Concurrent Ecb;
+        public EntityCommandBuffer.ParallelWriter Ecb;
 
         private Line        line;
         private LineProfile lineProfile;
@@ -50,7 +50,7 @@ namespace Sibz.Lines.ECS.Jobs
             if (index != LineEntities.IndexOf<Entity>(LineEntities[index]))
                 return;
             line = Lines[LineEntities[index]];
-            lineProfile = LineProfiles.Exists(line.Profile)
+            lineProfile = LineProfiles.HasComponent(line.Profile)
                               ? LineProfiles[line.Profile]
                               : DefaultProfile;
             knotData = KnotData[LineEntities[index]];

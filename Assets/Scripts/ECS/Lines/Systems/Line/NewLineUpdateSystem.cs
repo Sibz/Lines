@@ -50,7 +50,7 @@ namespace Sibz.Lines.ECS.Systems
             // This job only runs if UpdateJoinPoints is set in event data
             Dependency = new NewLineGetUpdatedJoinPoints
                          {
-                             Ecb            = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             Ecb            = LineEndSimBufferSystem.Instance.CreateCommandBuffer().AsParallelWriter(),
                              EventData      = eventData,
                              LineJoinPoints = lineJoinPoints,
                              JoinPoints     = joinPoints,
@@ -61,7 +61,7 @@ namespace Sibz.Lines.ECS.Systems
 
             Dependency = new NewLineUpdateModifiersJob
                          {
-                             Ecb             = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             Ecb             = LineEndSimBufferSystem.Instance.CreateCommandBuffer().AsParallelWriter(),
                              NewLines        = GetComponentDataFromEntity<NewLine>(),
                              LineEntities    = lineEntities,
                              LineJoinPoints  = lineJoinPoints,
@@ -102,7 +102,7 @@ namespace Sibz.Lines.ECS.Systems
                              BoundsArray    = boundsArray,
                              Lines          = GetComponentDataFromEntity<Line>(true),
                              LineProfiles   = GetComponentDataFromEntity<LineProfile>(),
-                             Ecb            = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             Ecb            = LineEndSimBufferSystem.Instance.CreateCommandBuffer().AsParallelWriter(),
                              DefaultProfile = LineProfile.Default()
                          }.Schedule(eventCount, 4, Dependency);
 
@@ -148,7 +148,7 @@ namespace Sibz.Lines.ECS.Systems
 
             Dependency = new NewLineUpdateJoinPointsJob
                          {
-                             Ecb            = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             Ecb            = LineEndSimBufferSystem.Instance.CreateCommandBuffer().AsParallelWriter(),
                              LineEntities   = lineEntities,
                              Lines          = GetComponentDataFromEntity<Line>(),
                              LineJoinPoints = lineJoinPoints
@@ -157,12 +157,12 @@ namespace Sibz.Lines.ECS.Systems
             Dependency = new LineSetDirtyJob
                          {
                              LineEntities = lineEntities,
-                             Ecb          = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent()
+                             Ecb          = LineEndSimBufferSystem.Instance.CreateCommandBuffer().AsParallelWriter()
                          }.Schedule(eventCount, 4, Dependency);
 
             Dependency = new LineTriggerMeshRebuildJob
                          {
-                             Ecb           = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             Ecb           = LineEndSimBufferSystem.Instance.CreateCommandBuffer().AsParallelWriter(),
                              LineEntities  = lineEntities,
                              LineProfiles  = GetComponentDataFromEntity<LineProfile>(),
                              Lines         = GetComponentDataFromEntity<Line>(true),

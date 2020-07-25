@@ -130,7 +130,7 @@ namespace Sibz.Lines.ECS.Jobs
 
             dependency = new UpdateEntityHeightMapData
                          {
-                             Ecb = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             Ecb = LineEndSimBufferSystem.Instance.CreateCommandBuffer().AsParallelWriter(),
                              Entities = entities,
                              HeightData = heightData,
                              HeightSet = heightSet,
@@ -183,7 +183,7 @@ namespace Sibz.Lines.ECS.Jobs
 
             public void Execute(int index)
             {
-                LineProfiles[index] = LineProfilesFromEntity.Exists(Lines[Entities[index]].Profile)
+                LineProfiles[index] = LineProfilesFromEntity.HasComponent(Lines[Entities[index]].Profile)
                                           ? LineProfilesFromEntity[Lines[Entities[index]].Profile]
                                           : DefaultProfile;
             }
@@ -304,6 +304,14 @@ namespace Sibz.Lines.ECS.Jobs
                     HeightSet.Resize(HeightSet.Length + boundsLen, NativeArrayOptions.ClearMemory);
                     for (var j = 0; j < boundsLen; j++) EntityIndex.Add(i);
                 }
+            }
+        }
+
+        public struct BuildKDTree : IJob
+        {
+            public void Execute()
+            {
+                throw new System.NotImplementedException();
             }
         }
 
@@ -489,7 +497,7 @@ namespace Sibz.Lines.ECS.Jobs
             [NativeDisableParallelForRestriction]
             public BufferFromEntity<LineTerrainMinMaxHeightMap> HeightMapBuffers;
 
-            public EntityCommandBuffer.Concurrent Ecb;
+            public EntityCommandBuffer.ParallelWriter Ecb;
 
             public void Execute(int index)
             {

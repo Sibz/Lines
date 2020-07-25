@@ -16,7 +16,7 @@ namespace Sibz.Lines.ECS.Jobs
         [ReadOnly]
         public NativeArray<JoinPointPair> LineJoinPoints;
 
-        public EntityCommandBuffer.Concurrent Ecb;
+        public EntityCommandBuffer.ParallelWriter Ecb;
 
         public void Execute(int index)
         {

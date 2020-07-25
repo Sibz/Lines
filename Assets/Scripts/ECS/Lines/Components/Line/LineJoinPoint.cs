@@ -36,7 +36,7 @@ namespace Sibz.Lines.ECS.Components
             return entity;
         }
 
-        public static void UnJoin(EntityCommandBuffer.Concurrent ecb,      int               jobIndex,
+        public static void UnJoin(EntityCommandBuffer.ParallelWriter ecb,      int               jobIndex,
                                   ref LineJoinPoint              fromData, ref LineJoinPoint toData)
         {
             // TODO: Check isn't already un-joined
@@ -49,7 +49,7 @@ namespace Sibz.Lines.ECS.Components
             if (toEntity != Entity.Null) ecb.SetComponent(jobIndex, toEntity, toData);
         }
 
-        public static void UnJoinIfJoined(EntityCommandBuffer.Concurrent         ecb,
+        public static void UnJoinIfJoined(EntityCommandBuffer.ParallelWriter         ecb,
                                           int                                    jobIndex,
                                           ComponentDataFromEntity<LineJoinPoint> joinPoints,
                                           Entity                                 oneSide)
@@ -61,7 +61,7 @@ namespace Sibz.Lines.ECS.Components
 
             var toEntity = fromData.JoinToPointEntity;
 
-            if (!joinPoints.Exists(toEntity))
+            if (!joinPoints.HasComponent(toEntity))
             {
                 var toData = joinPoints[toEntity];
                 toData.JoinToPointEntity = Entity.Null;
@@ -108,7 +108,7 @@ namespace Sibz.Lines.ECS.Components
         }
 
         public static void Join(
-            EntityCommandBuffer.Concurrent ecb,      int    jobIndex,
+            EntityCommandBuffer.ParallelWriter ecb,      int    jobIndex,
             ref LineJoinPoint              fromData, Entity fromEntity,
             ref LineJoinPoint              toData,   Entity toEntity)
         {
@@ -122,7 +122,7 @@ namespace Sibz.Lines.ECS.Components
             Join(toEntity, ref toData, fromEntity);
         }
 
-        public static void Join(EntityCommandBuffer.Concurrent         ecb,
+        public static void Join(EntityCommandBuffer.ParallelWriter         ecb,
                                 int                                    jobIndex,
                                 ComponentDataFromEntity<LineJoinPoint> joinPoints,
                                 Entity                                 fromEntity,

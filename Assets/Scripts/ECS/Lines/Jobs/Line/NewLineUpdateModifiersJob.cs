@@ -23,7 +23,7 @@ namespace Sibz.Lines.ECS.Jobs
         [WriteOnly, NativeDisableParallelForRestriction]
         public NativeArray<NewLine> UpdatedNewLines;
 
-        public EntityCommandBuffer.Concurrent Ecb;
+        public EntityCommandBuffer.ParallelWriter Ecb;
 
         public void Execute(int index)
         {

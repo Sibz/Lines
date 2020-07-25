@@ -18,7 +18,7 @@ namespace Sibz.Lines.ECS.Jobs
         [ReadOnly]
         public ComponentDataFromEntity<LineProfile> LineProfiles;
 
-        public EntityCommandBuffer.Concurrent Ecb;
+        public EntityCommandBuffer.ParallelWriter Ecb;
         public Entity                         DefaultPrefab;
 
         public void Execute(int index)
@@ -31,7 +31,7 @@ namespace Sibz.Lines.ECS.Jobs
                             };
 
             var meshBuildTriggerEntity = Ecb.Instantiate(index,
-                                                         LineProfiles.Exists(Lines[LineEntities[index]].Profile)
+                                                         LineProfiles.HasComponent(Lines[LineEntities[index]].Profile)
                                                              ? LineProfiles[Lines[LineEntities[index]].Profile]
                                                                 .MeshBuildPrefab
                                                              : DefaultPrefab);

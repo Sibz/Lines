@@ -52,7 +52,7 @@ namespace Sibz.Lines.ECS.Jobs
 
                 line = Lines[LineEntities[index]];
 
-                lineProfile = LineProfiles.Exists(line.Profile) ? LineProfiles[line.Profile] : LineProfile.Default();
+                lineProfile = LineProfiles.HasComponent(line.Profile) ? LineProfiles[line.Profile] : LineProfile.Default();
 
                 var b1 = BezierData[index].B1;
                 var b2 = BezierData[index].B2;

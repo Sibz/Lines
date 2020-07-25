@@ -25,7 +25,7 @@ namespace Sibz.Lines.ECS.Jobs
 
         [ReadOnly]
         public NativeArray<Entity>            LineEntities;
-        public EntityCommandBuffer.Concurrent Ecb;
+        public EntityCommandBuffer.ParallelWriter Ecb;
         public LineProfile                    DefaultProfile;
 
         private Line   line;
@@ -41,7 +41,7 @@ namespace Sibz.Lines.ECS.Jobs
             line       = Lines[LineEntities[index]];
             lineEntity = LineEntities[index];
 
-            if (!LineJoinPoints.Exists(line.JoinPointA) || !LineJoinPoints.Exists(line.JoinPointB))
+            if (!LineJoinPoints.HasComponent(line.JoinPointA) || !LineJoinPoints.HasComponent(line.JoinPointB))
                 throw new InvalidOperationException("One or more line join points didn't exist");
 
             Line   otherLine;
@@ -50,13 +50,13 @@ namespace Sibz.Lines.ECS.Jobs
             var    joinA = LineJoinPoints[line.JoinPointA];
             var    joinB = LineJoinPoints[line.JoinPointB];
 
-            if (joinA.IsJoined && Lines.Exists(LineJoinPoints[joinA.JoinToPointEntity].ParentEntity))
+            if (joinA.IsJoined && Lines.HasComponent(LineJoinPoints[joinA.JoinToPointEntity].ParentEntity))
             {
                 otherLineEntity = LineJoinPoints[joinA.JoinToPointEntity].ParentEntity;
                 otherLine       = Lines[otherLineEntity];
                 thisJoinEntity  = line.JoinPointA;
             }
-            else if (joinB.IsJoined && Lines.Exists(LineJoinPoints[joinB.JoinToPointEntity].ParentEntity))
+            else if (joinB.IsJoined && Lines.HasComponent(LineJoinPoints[joinB.JoinToPointEntity].ParentEntity))
             {
                 otherLineEntity = LineJoinPoints[joinB.JoinToPointEntity].ParentEntity;
                 otherLine       = Lines[otherLineEntity];
@@ -108,7 +108,7 @@ namespace Sibz.Lines.ECS.Jobs
             line.Position = math.lerp(min, max, 0.5f);
             line.BoundingBoxSize =
                 max - min +
-                (LineProfiles.Exists(LineEntities[index])
+                (LineProfiles.HasComponent(LineEntities[index])
                      ? LineProfiles[LineEntities[index]].Width * 2
                      : DefaultProfile.Width * 2);
         }

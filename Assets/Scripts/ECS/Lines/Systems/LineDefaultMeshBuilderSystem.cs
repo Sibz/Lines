@@ -44,12 +44,12 @@ namespace Sibz.Lines.ECS.Systems
                 lineJoinsQuery.ToComponentDataArrayAsync<LineJoinPoint>(Allocator.TempJob, out jh2);
             Dependency = JobHandle.CombineDependencies(Dependency, jh1, jh2);
 
-            var ecb = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent();
+            var ecb = LineEndSimBufferSystem.Instance.CreateCommandBuffer().AsParallelWriter();
             Dependency = Entities
-                        .WithDeallocateOnJobCompletion(lineEntities)
-                        .WithDeallocateOnJobCompletion(lines)
-                        .WithDeallocateOnJobCompletion(joinEntities)
-                        .WithDeallocateOnJobCompletion(joinPoints)
+                        .WithDisposeOnCompletion(lineEntities)
+                        .WithDisposeOnCompletion(lines)
+                        .WithDisposeOnCompletion(joinEntities)
+                        .WithDisposeOnCompletion(joinPoints)
                         .ForEach((Entity entity, int entityInQueryIndex, ref MeshBuildData data) =>
                                  {
                                      ecb.DestroyEntity(entityInQueryIndex, entity);

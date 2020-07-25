@@ -30,8 +30,8 @@ namespace Sibz.Lines.ECS.Jobs
             var jp1 = LineJoinPoints[index].A;
             var jp2 = LineJoinPoints[index].B;
 
-            var pointAIsConnected = JoinPoints.Exists(jp1.JoinToPointEntity);
-            var pointBIsConnected = JoinPoints.Exists(jp2.JoinToPointEntity);
+            var pointAIsConnected = JoinPoints.HasComponent(jp1.JoinToPointEntity);
+            var pointBIsConnected = JoinPoints.HasComponent(jp2.JoinToPointEntity);
 
             var pointA = jp1.Pivot;
             var pointB = jp2.Pivot;

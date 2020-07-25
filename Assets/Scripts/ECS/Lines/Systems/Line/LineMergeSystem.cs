@@ -38,7 +38,7 @@ namespace Sibz.Lines.ECS.Systems
                              LineJoinPoints = joinPoints,
                              LineProfiles   = GetComponentDataFromEntity<LineProfile>(),
                              LineKnotData   = knotBuffers,
-                             Ecb            = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             Ecb            = LineEndSimBufferSystem.Instance.CreateCommandBuffer().AsParallelWriter(),
                              DefaultProfile = LineProfile.Default()
                          }.Schedule(linesToCheck.Length, 4, Dependency);
 
@@ -67,7 +67,7 @@ namespace Sibz.Lines.ECS.Systems
             // TODO only trigger this when lines are merged
             Dependency = new LineTriggerMeshRebuildJob
                          {
-                             Ecb           = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             Ecb           = LineEndSimBufferSystem.Instance.CreateCommandBuffer().AsParallelWriter(),
                              Lines         = GetComponentDataFromEntity<Line>(true),
                              LineProfiles  = GetComponentDataFromEntity<LineProfile>(true),
                              LineEntities  = linesToCheck,
@@ -76,7 +76,7 @@ namespace Sibz.Lines.ECS.Systems
 
             Dependency = new LineSetDirtyJob
                          {
-                             Ecb          = LineEndSimBufferSystem.Instance.CreateCommandBuffer().ToConcurrent(),
+                             Ecb          = LineEndSimBufferSystem.Instance.CreateCommandBuffer().AsParallelWriter(),
                              LineEntities = linesToCheck
                          }.Schedule(linesToCheck.Length, 4, Dependency);
 

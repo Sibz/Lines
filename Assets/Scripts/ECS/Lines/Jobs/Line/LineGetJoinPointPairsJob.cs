@@ -29,18 +29,18 @@ namespace Sibz.Lines.ECS.Jobs
         public void Execute(int i)
         {
             var lineEntity = EventData[i].LineEntity;
-            if (!Lines.Exists(lineEntity)) return;
+            if (!Lines.HasComponent(lineEntity)) return;
 
             LineEntities[i] = lineEntity;
             var line = Lines[lineEntity];
             LineJoinPoints[i] = new JoinPointPair
                                 {
                                     A =
-                                        JoinPoints.Exists(line.JoinPointA) // It should exist, but just in case
+                                        JoinPoints.HasComponent(line.JoinPointA) // It should exist, but just in case
                                             ? JoinPoints[line.JoinPointA]
                                             : throw new InvalidOperationException("JoinPointA didn't exist"),
                                     B =
-                                        JoinPoints.Exists(line.JoinPointB) // It should exist, but just in case
+                                        JoinPoints.HasComponent(line.JoinPointB) // It should exist, but just in case
                                             ? JoinPoints[line.JoinPointB]
                                             : throw new InvalidOperationException("JoinPointB didn't exist")
                                 };

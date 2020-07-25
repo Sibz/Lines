@@ -23,7 +23,7 @@ namespace Sibz.Lines.ECS.Jobs
         [ReadOnly]
         public ComponentDataFromEntity<Line> Lines;
 
-        public EntityCommandBuffer.Concurrent Ecb;
+        public EntityCommandBuffer.ParallelWriter Ecb;
 
         public void Execute(int index)
         {
@@ -47,7 +47,7 @@ namespace Sibz.Lines.ECS.Jobs
 
             thisJoinPoint.Pivot = eventData.Position;
 
-            var newJoinPoint = JoinPoints.Exists(eventData.JoinTo)
+            var newJoinPoint = JoinPoints.HasComponent(eventData.JoinTo)
                                    ? JoinPoints[eventData.JoinTo]
                                    : default;
 

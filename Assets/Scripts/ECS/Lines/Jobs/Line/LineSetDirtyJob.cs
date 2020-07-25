@@ -12,7 +12,7 @@ namespace Sibz.Lines.ECS.Jobs
         [ReadOnly]
         public NativeArray<Entity> LineEntities;
 
-        public EntityCommandBuffer.Concurrent Ecb;
+        public EntityCommandBuffer.ParallelWriter Ecb;
 
         public void Execute(int index)
         {
