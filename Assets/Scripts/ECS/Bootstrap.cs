@@ -29,6 +29,8 @@ namespace Sibz.Lines.ECS
 
             LineWorld.World.Initialise();
 
+            World.DefaultGameObjectInjectionWorld = LineWorld.World;
+
             return true;
         }
 

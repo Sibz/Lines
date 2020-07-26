@@ -37,6 +37,9 @@ namespace Sibz.Lines.ECS.Jobs
         private NativeList<bool>         heightSet;
         private NativeList<int>          entityIndex;
 
+        private NativeList<BuildKdTree.MultiKdTree.Node> nodes;
+        private NativeList<int2>                         offsetAndLengths;
+
         public void Dispose()
         {
             if (combinedKnotData.IsCreated)
@@ -47,6 +50,10 @@ namespace Sibz.Lines.ECS.Jobs
                 heightSet.Dispose();
             if (entityIndex.IsCreated)
                 entityIndex.Dispose();
+            if (nodes.IsCreated)
+                nodes.Dispose();
+            if (offsetAndLengths.IsCreated)
+                offsetAndLengths.Dispose();
         }
 
         public JobHandle Schedule(JobHandle dependency)
@@ -68,6 +75,8 @@ namespace Sibz.Lines.ECS.Jobs
             heightData       = new NativeList<float2x2>(Allocator.TempJob);
             heightSet        = new NativeList<bool>(Allocator.TempJob);
             entityIndex      = new NativeList<int>(Allocator.TempJob);
+            nodes            = new NativeList<BuildKdTree.MultiKdTree.Node>(Allocator.TempJob);
+            offsetAndLengths = new NativeList<int2>(Allocator.TempJob);
             e.Dispose();
 
             var dependency2 = new CombineKnotData
@@ -77,6 +86,14 @@ namespace Sibz.Lines.ECS.Jobs
                                   CombinedKnotData     = combinedKnotData,
                                   KnotOffsetAndLengths = knotOffsetAndLengths
                               }.Schedule(dependency);
+
+            var dependency3 = new BuildKdTree
+                              {
+                                  Entities         = entities,
+                                  KnotData         = KnotData,
+                                  Nodes            = nodes,
+                                  OffsetAndLengths = offsetAndLengths
+                              }.Schedule(dependency2);
 
             dependency = new GetProfiles
                          {
@@ -125,7 +142,9 @@ namespace Sibz.Lines.ECS.Jobs
                              HeightData                 = heightData,
                              HeightSet                  = heightSet,
                              TerrainSize                = TerrainSize,
-                             HeightMapResolution        = HeightMapResolution
+                             HeightMapResolution        = HeightMapResolution,
+                             Nodes                      = nodes,
+                             OffsetAndLengths           = offsetAndLengths
                          }.Schedule(heightData, 8, JobHandle.CombineDependencies(dependency, dependency2));
 
             dependency = new UpdateEntityHeightMapData
@@ -307,11 +326,224 @@ namespace Sibz.Lines.ECS.Jobs
             }
         }
 
-        public struct BuildKDTree : IJob
+        public struct BuildKdTree : IJob
         {
+            public NativeList<MultiKdTree.Node> Nodes;
+            public NativeList<int2>             OffsetAndLengths;
+
+            [ReadOnly]
+            public BufferFromEntity<LineKnotData> KnotData;
+
+            [ReadOnly]
+            public NativeArray<Entity> Entities;
+
+            public struct MultiKdTree
+            {
+                public NativeList<Node> Nodes;
+                public NativeList<int2> OffsetAndLengths;
+
+                public MultiKdTree(Allocator allocator)
+                {
+                    Nodes            = new NativeList<Node>(allocator);
+                    OffsetAndLengths = new NativeList<int2>(allocator);
+                }
+
+                public MultiKdTree(NativeList<Node> nodes, NativeList<int2> offsetAndLengths)
+                {
+                    Nodes            = nodes;
+                    OffsetAndLengths = offsetAndLengths;
+                }
+
+                public void Dispose()
+                {
+                    if (Nodes.IsCreated)
+                        Nodes.Dispose();
+                    if (OffsetAndLengths.IsCreated)
+                        OffsetAndLengths.Dispose();
+                }
+
+                public void AddDataSet(NativeArray<LineKnotData> slice)
+                {
+                    int offset = Nodes.Length;
+                    int offsetIndex = OffsetAndLengths.Length;
+                    OffsetAndLengths.Add(new int2(offset, 0));
+
+                    if (slice.Length == 0) return;
+
+                    var medianX           = GetMedian(slice);
+                    var medianZ           = GetMedian(slice, false);
+                    var countBelowMedianX = GetCountBelow(slice, medianX);
+                    var countBelowMedianY = GetCountBelow(slice, medianZ, false);
+                    AddNode(slice, countBelowMedianX - slice.Length / 2 > countBelowMedianY - slice.Length / 2);
+                    int len = Nodes.Length - offset;
+                    OffsetAndLengths[offsetIndex] = new int2(offset, len);
+
+                }
+
+                public int AddNode(NativeArray<LineKnotData> slice, bool isX = true)
+                {
+                    var node = new Node
+                               {
+                                   IsX         = isX,
+                                   ResultCount = slice.Length
+                               };
+                    Nodes.Add(node);
+                    int index = Nodes.Length - 1;
+                    if (slice.Length <= 2)
+                    {
+                        node.IsFinal = true;
+                        for (int i = 0; i < slice.Length; i++)
+                        {
+                            node.Results[i] = slice[i].Position;
+                        }
+
+                        Nodes[index] = node;
+                        return Nodes.Length - 1;
+                    }
+
+                    var median = GetMedian(slice, isX);
+                    node.Value = median;
+
+                    var upper = new NativeList<LineKnotData>(Allocator.Temp);
+                    var lower = new NativeList<LineKnotData>(Allocator.Temp);
+
+                    void Divide()
+                    {
+                        upper.Clear();
+                        lower.Clear();
+                        for (int i = 0; i < slice.Length; i++)
+                        {
+                            var pos = slice[i].Position;
+                            if ((isX ? pos.x : pos.y) <= median)
+                                lower.Add(slice[i]);
+                            else
+                            {
+                                upper.Add(slice[i]);
+                            }
+                        }
+                    }
+
+                    Divide();
+
+                    var upperArray = new NativeArray<LineKnotData>(upper, Allocator.Temp);
+                    var lowerArray = new NativeArray<LineKnotData>(lower, Allocator.Temp);
+
+                    node.NextNodeIndexLower = AddNode(lowerArray, !isX);
+                    node.NextNodeIndexUpper = AddNode(upperArray, !isX);
+
+                    Nodes[index] = node;
+                    return index;
+                }
+
+                public float3 GetClosestPosition(int dataSetIndex, float3 fromPosition)
+                {
+                    var node = Nodes[OffsetAndLengths[dataSetIndex].x];
+                    while (node.TryGetNextIndex(new float2(fromPosition.x, fromPosition.z), out var index))
+                    {
+                        node = Nodes[index];
+                    }
+
+                    if (node.ResultCount == 1)
+                        return node.Results[0];
+
+                    var result = new float3();
+                    var dist   = float.MaxValue;
+                    for (int i = 0; i < node.ResultCount; i++)
+                    {
+                        var newDist = math.distance(node[i], fromPosition);
+                        if (newDist >= dist) continue;
+                        dist   = newDist;
+                        result = node[i];
+                    }
+
+                    return result;
+                }
+
+                private int GetCountBelow(NativeSlice<LineKnotData> slice, float median, bool useX = true)
+                {
+                    var count = 0;
+                    for (var i = 0; i < slice.Length; i++)
+                        if (useX ? slice[i].Position.x < median : slice[i].Position.z < median)
+                            count++;
+                        else
+                            break;
+
+                    return count;
+                }
+
+                private float GetMedian(NativeSlice<LineKnotData> array, bool useX = true)
+                {
+                    if (array.Length % 2 == 0)
+                    {
+                        int first = (int) math.floor((array.Length - 1) / 2f);
+                        int last  = first + 1;
+
+                        return (useX
+                                    ? array[first].Position.x + array[last].Position.x
+                                    : array[first].Position.z + array[last].Position.z) / 2;
+                    }
+
+                    return useX ? array[array.Length / 2].Position.x : array[array.Length / 2].Position.y;
+                }
+
+                public struct Node
+                {
+                    public float    Value;
+                    public bool     IsX;
+                    public bool     IsFinal;
+                    public int      NextNodeIndexLower, NextNodeIndexUpper;
+                    public int      ResultCount;
+                    public float3x4 Results;
+
+                    public bool TryGetNextIndex(float2 comparer, out int index)
+                    {
+                        index = -1;
+                        if (IsFinal) return false;
+                        index = (IsX ? comparer.x : comparer.y) > Value ? NextNodeIndexUpper : NextNodeIndexLower;
+                        return true;
+                    }
+
+                    public float3 this[int index] => Results[index];
+                }
+            }
+
+            private MultiKdTree tree;
+
             public void Execute()
             {
-                throw new System.NotImplementedException();
+                tree = new MultiKdTree(Nodes, OffsetAndLengths);
+                for (int i = 0; i < Entities.Length; i++)
+                {
+                    tree.AddDataSet(KnotData[Entities[i]].AsNativeArray());
+                }
+            }
+
+            public struct MultiKdTreeReader
+            {
+                public static float3 GetClosestPosition([ReadOnly] NativeArray<MultiKdTree.Node> nodes, [ReadOnly] NativeArray<int2> offsets, int dataSetIndex, float3 fromPosition)
+                {
+                    if (nodes.Length == 0) return new float3(float.MaxValue);
+                    var node = nodes[offsets[dataSetIndex].x];
+                    while (node.TryGetNextIndex(new float2(fromPosition.x, fromPosition.z), out var index))
+                    {
+                        node = nodes[index];
+                    }
+
+                    if (node.ResultCount == 1)
+                        return node.Results[0];
+
+                    var result = new float3();
+                    var dist   = float.MaxValue;
+                    for (int i = 0; i < node.ResultCount; i++)
+                    {
+                        var newDist = math.distance(node[i], fromPosition);
+                        if (newDist >= dist) continue;
+                        dist   = newDist;
+                        result = node[i];
+                    }
+
+                    return result;
+                }
             }
         }
 
@@ -338,6 +570,12 @@ namespace Sibz.Lines.ECS.Jobs
             [ReadOnly]
             public NativeArray<float4> MaxDistances;
 
+            [ReadOnly]
+            public NativeList<BuildKdTree.MultiKdTree.Node> Nodes;
+
+            [ReadOnly]
+            public NativeList<int2> OffsetAndLengths;
+
             [NativeDisableParallelForRestriction]
             public NativeList<float2x2> HeightData;
 
@@ -347,16 +585,22 @@ namespace Sibz.Lines.ECS.Jobs
             public int    HeightMapResolution;
             public float3 TerrainSize;
 
-            private int          entityIndex;
-            private int          index;
-            private int2         heightMapPosition;
-            private float3       worldPosition;
-            private LineKnotData closestKnot;
-            private int          closestKnotIndex;
-            private LineProfile  lineProfile;
+            private int  entityIndex;
+            private int  index;
+            private int2 heightMapPosition;
+
+            private float3 worldPosition;
+
+            //private LineKnotData closestKnot;
+            private float3 closestKnotPosition;
+
+            //private int          closestKnotIndex;
+            private LineProfile             lineProfile;
+            //private BuildKdTree.MultiKdTree tree;
 
             public void Execute(int i)
             {
+                //tree        = new BuildKdTree.MultiKdTree(Nodes, OffsetAndLengths);
                 index       = i;
                 entityIndex = EntityIndex[i];
                 lineProfile = LineProfiles[entityIndex];
@@ -375,12 +619,14 @@ namespace Sibz.Lines.ECS.Jobs
 
             public void SetMinMax()
             {
-                var closestPosWithoutHeight = closestKnot.Position;
+                //var closestPosWithoutHeight = closestKnot.Position;
+                var closestPosWithoutHeight = closestKnotPosition;
                 closestPosWithoutHeight.y = 0;
 
-                var dist              = math.distance(closestPosWithoutHeight, worldPosition);
+                var dist = math.distance(closestPosWithoutHeight, worldPosition);
 
-                var closestKnotHeight = closestKnot.Position.y / TerrainSize.y;
+                //var closestKnotHeight = closestKnot.Position.y / TerrainSize.y;
+                var closestKnotHeight = closestKnotPosition.y / TerrainSize.y;
                 if (dist < lineProfile.Width / 1.5)
                 {
                     HeightData[index] =
@@ -394,9 +640,10 @@ namespace Sibz.Lines.ECS.Jobs
                     HeightSet[index] = false;
                     return;
                 }
+
                 /*HeightSet[index] = false;
                 return;*/
-                var distFromEdge = dist - lineProfile.Width /2;
+                var distFromEdge = dist - lineProfile.Width / 2;
 
                 float GetCurveVector(float maxDist, float maxChange, LineProfile profile)
                 {
@@ -420,15 +667,17 @@ namespace Sibz.Lines.ECS.Jobs
 
             private void SetClosesKnot(NativeSlice<LineKnotData> knotData)
             {
-                TryGetClosestKnot(knotData, 0, knotData.Length - 1, out closestKnotIndex);
-                closestKnot = knotData[closestKnotIndex];
+                closestKnotPosition = BuildKdTree.MultiKdTreeReader
+                                                 .GetClosestPosition(Nodes, OffsetAndLengths,
+                                                                                       entityIndex, worldPosition);
+                //TryGetClosestKnot(knotData, 0, knotData.Length - 1, out closestKnotIndex);
+                //closestKnot = knotData[closestKnotIndex];
             }
 
             private void TryGetClosestKnot(NativeSlice<LineKnotData> knotData, int start, int end, out int closestIndex)
             {
                 while (true)
                 {
-
                     if (start == end)
                     {
                         closestIndex = start;
@@ -509,9 +758,9 @@ namespace Sibz.Lines.ECS.Jobs
                                                           HeightDataOffsetAndLengths[index].y);
                 var heightMapBuffer = HeightMapBuffers[Entities[index]];
                 heightMapBuffer.Clear();
-                var len             = heightData.Length;
-                var lowest          = int2.zero;
-                var highest         = int2.zero;
+                var len     = heightData.Length;
+                var lowest  = int2.zero;
+                var highest = int2.zero;
 
                 if (len == 0) return;
 
